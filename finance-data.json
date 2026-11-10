@@ -1,4 +1,19 @@
 {
-  "updatedAt": "2026-11-10T20:01:44.985Z",
-  "transactions": []
+  "updatedAt": "2026-11-10T20:03:43.449Z",
+  "transactions": [
+    {
+      "id": "tx-1794341023446",
+      "type": "deposit",
+      "subDirection": null,
+      "amount": 1000,
+      "currency": "USD",
+      "title": "فلوس عبود في بنك فلسطين",
+      "party": "عبدالرحمن عنان",
+      "account": "الحساب البنكي",
+      "date": "2026-11-09",
+      "dueDate": null,
+      "settled": true,
+      "notes": "تحويل من حساب محمد عنان الى حسابي وذلك عهده عندي لعبدالرحمن"
+    }
+  ]
 }
