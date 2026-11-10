@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>محفظتي المالية | إدارة المعاملات، الديون والأمانات</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cairo -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Cairo', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        /* Hide scrollbars for clean mobile feel */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Mobile touch bottom sheet animation */
+        @keyframes slideUp {
+            from { transform: translateY(100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: #fff !important; color: #000 !important; }
+        }
+        /* Interactive Card Hover & Glow effects */
+        .stat-card {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            user-select: none;
+            cursor: pointer;
+        }
+        .stat-card:hover {
+            transform: translateY(-3px) scale(1.01);
+        }
+        .stat-card:active {
+            transform: scale(0.98);
+        }
+        .stat-card.active-card {
+            box-shadow: 0 0 0 3px currentColor, 0 12px 25px -8px rgba(0,0,0,0.25);
+        }
+    </style>
+</head>
+<body class="bg-slate-100/70 dark:bg-slate-950 text-slate-800 dark:text-slate-100 min-h-screen flex flex-col pb-20 md:pb-6 transition-colors duration-200">
+
+    <!-- Header Navigation -->
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 shadow-sm no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Brand -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 via-indigo-600 to-sky-500 text-white flex items-center justify-center shadow-md shadow-brand-500/25">
+                    <i class="fa-solid fa-wallet text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-lg font-black text-slate-900 dark:text-white leading-none">دفتر المعاملات الذكي</h1>
+                    <span class="text-[11px] text-slate-400 font-medium">سحب • إيداع • ديون • أمانات</span>
+                </div>
+            </div>
+
+            <!-- Currency Quick Switcher & Integrations -->
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <!-- Currency Toggle Display (USD / EGP) -->
+                <div class="bg-slate-100 dark:bg-slate-800 p-1 rounded-xl flex items-center border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                    <button id="btnCurrencyUSD" onclick="setActiveDisplayCurrency('USD')" class="px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-700 text-brand-600 dark:text-white shadow-xs">
+                        USD $
+                    </button>
+                    <button id="btnCurrencyEGP" onclick="setActiveDisplayCurrency('EGP')" class="px-2.5 py-1 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-800">
+                        EGP ج.م
+                    </button>
+                </div>
+
+                <!-- GitHub Sync Status Button -->
+                <button onclick="openGitHubModal()" id="gitSyncBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-brand-500 text-slate-700 dark:text-slate-200 text-xs font-semibold transition shadow-xs" title="إعدادات مزامنة GitHub">
+                    <i class="fa-brands fa-github text-sm"></i>
+                    <span id="gitSyncBadge" class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600"></span>
+                    <span class="hidden sm:inline">GitHub</span>
+                </button>
+
+                <!-- Theme Toggle -->
+                <button onclick="toggleTheme()" class="w-9 h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center transition shadow-xs" title="تبديل الوضع">
+                    <i class="fa-solid fa-moon dark:hidden text-sm"></i>
+                    <i class="fa-solid fa-sun hidden dark:inline text-sm"></i>
+                </button>
+
+                <!-- Desktop New Transaction Button -->
+                <button onclick="openModal()" class="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 text-white text-xs sm:text-sm font-bold shadow-md shadow-brand-500/25 active:scale-95 transition">
+                    <i class="fa-solid fa-plus text-xs"></i>
+                    <span>معاملة جديدة</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+
+        <!-- Top Interactive & Vibrant Colored Stat Cards -->
+        <section class="grid grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+            
+            <!-- 1. Net Balance Card (Deep Indigo & Violet Glow) -->
+            <div id="cardAll" onclick="setFilterType('all')" class="stat-card col-span-2 lg:col-span-1 bg-gradient-to-br from-indigo-600 via-indigo-700 to-violet-800 text-white p-4 sm:p-5 rounded-2xl shadow-lg shadow-indigo-600/25 relative overflow-hidden flex flex-col justify-between border border-indigo-400/30 active-card" title="انقر لعرض كافة المعاملات">
+                <div class="absolute -right-4 -bottom-4 opacity-15 text-7xl pointer-events-none">
+                    <i class="fa-solid fa-scale-balanced"></i>
+                </div>
+                <div>
+                    <div class="flex items-center justify-between text-xs text-indigo-100 font-bold mb-1.5">
+                        <span class="flex items-center gap-1.5">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                            الرصيد الفعلي الحالي
+                        </span>
+                        <span id="activeCurrencyPill" class="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-black border border-white/20">USD</span>
+                    </div>
+                    <h3 id="statNetBalance" class="text-2xl sm:text-3xl font-black tracking-tight mt-1 drop-shadow-sm">0.00</h3>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-[11px] text-indigo-200 border-t border-white/20 pt-2 font-medium">
+                    <span class="flex items-center gap-1"><i class="fa-solid fa-arrow-pointer text-[10px]"></i> (إيداع - سحب)</span>
+                    <span id="statCurrencySublabel" class="font-bold text-white">بالدولار</span>
+                </div>
+            </div>
+
+            <!-- 2. Total Deposits Card (Emerald & Teal Vibrant Gradient) -->
+            <div id="cardDeposit" onclick="setFilterType('deposit')" class="stat-card bg-gradient-to-br from-emerald-500 via-emerald-600 to-teal-700 text-white p-4 rounded-2xl shadow-lg shadow-emerald-600/20 relative overflow-hidden flex flex-col justify-between border border-emerald-400/30" title="انقر لتصفية الإيداعات فقط">
+                <div class="absolute -right-2 -bottom-2 opacity-15 text-6xl pointer-events-none">
+                    <i class="fa-solid fa-arrow-down-left"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-emerald-100">إجمالي الإيداعات</span>
+                    <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-sm shadow-inner">
+                        <i class="fa-solid fa-arrow-down-left"></i>
+                    </div>
+                </div>
+                <h4 id="statTotalDeposit" class="text-xl sm:text-2xl font-black mt-2 drop-shadow-sm">0.00</h4>
+                <div class="mt-2 flex items-center justify-between text-[11px] text-emerald-100 border-t border-white/20 pt-2">
+                    <span class="font-medium">أرباح ومدخولات</span>
+                    <span class="text-[10px] bg-emerald-400/30 px-1.5 py-0.5 rounded-md font-bold">تصفية ↗</span>
+                </div>
+            </div>
+
+            <!-- 3. Total Withdrawals Card (Rose & Coral Radiant Gradient) -->
+            <div id="cardWithdraw" onclick="setFilterType('withdraw')" class="stat-card bg-gradient-to-br from-rose-500 via-rose-600 to-red-700 text-white p-4 rounded-2xl shadow-lg shadow-rose-600/20 relative overflow-hidden flex flex-col justify-between border border-rose-400/30" title="انقر لتصفية السحوبات فقط">
+                <div class="absolute -right-2 -bottom-2 opacity-15 text-6xl pointer-events-none">
+                    <i class="fa-solid fa-arrow-up-right"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-rose-100">إجمالي السحوبات</span>
+                    <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-sm shadow-inner">
+                        <i class="fa-solid fa-arrow-up-right"></i>
+                    </div>
+                </div>
+                <h4 id="statTotalWithdraw" class="text-xl sm:text-2xl font-black mt-2 drop-shadow-sm">0.00</h4>
+                <div class="mt-2 flex items-center justify-between text-[11px] text-rose-100 border-t border-white/20 pt-2">
+                    <span class="font-medium">مصروفات والتزامات</span>
+                    <span class="text-[10px] bg-rose-400/30 px-1.5 py-0.5 rounded-md font-bold">تصفية ↗</span>
+                </div>
+            </div>
+
+            <!-- 4. Debts Card (Amber & Orange Warm Gold Gradient) -->
+            <div id="cardDebt" onclick="setFilterType('debt')" class="stat-card bg-gradient-to-br from-amber-500 via-amber-600 to-orange-700 text-white p-4 rounded-2xl shadow-lg shadow-amber-600/20 relative overflow-hidden flex flex-col justify-between border border-amber-400/30" title="انقر لتصفية الديون">
+                <div class="absolute -right-2 -bottom-2 opacity-15 text-6xl pointer-events-none">
+                    <i class="fa-solid fa-hand-holding-dollar"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-amber-100">الديون القائمة</span>
+                    <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-sm shadow-inner">
+                        <i class="fa-solid fa-handshake-angle"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-baseline justify-between bg-black/15 p-2 rounded-xl backdrop-blur-xs">
+                    <div>
+                        <span class="text-[10px] text-amber-200 block font-medium">لك (تطالب بها)</span>
+                        <span id="statDebtToMe" class="text-xs sm:text-sm font-black text-emerald-200">0.00</span>
+                    </div>
+                    <div class="text-left">
+                        <span class="text-[10px] text-amber-200 block font-medium">عليك (التزام)</span>
+                        <span id="statDebtOnMe" class="text-xs sm:text-sm font-black text-rose-200">0.00</span>
+                    </div>
+                </div>
+                <div class="mt-2 text-left">
+                    <span class="text-[10px] bg-amber-400/30 px-1.5 py-0.5 rounded-md font-bold text-white">تصفية الديون ↗</span>
+                </div>
+            </div>
+
+            <!-- 5. Trusts Card (Sky & Ocean Blue Gradient) -->
+            <div id="cardTrust" onclick="setFilterType('trust')" class="stat-card col-span-2 lg:col-span-1 bg-gradient-to-br from-sky-500 via-sky-600 to-blue-700 text-white p-4 rounded-2xl shadow-lg shadow-sky-600/20 relative overflow-hidden flex flex-col justify-between border border-sky-400/30" title="انقر لتصفية الأمانات">
+                <div class="absolute -right-2 -bottom-2 opacity-15 text-6xl pointer-events-none">
+                    <i class="fa-solid fa-vault"></i>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-sky-100">الأمانات والودائع</span>
+                    <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-sm shadow-inner">
+                        <i class="fa-solid fa-vault"></i>
+                    </div>
+                </div>
+                <div class="mt-2 flex items-baseline justify-between bg-black/15 p-2 rounded-xl backdrop-blur-xs">
+                    <div>
+                        <span class="text-[10px] text-sky-200 block font-medium">بحوزتك (عهدة)</span>
+                        <span id="statTrustHeld" class="text-xs sm:text-sm font-black text-sky-100">0.00</span>
+                    </div>
+                    <div class="text-left">
+                        <span class="text-[10px] text-sky-200 block font-medium">لك عند غيرك</span>
+                        <span id="statTrustGiven" class="text-xs sm:text-sm font-black text-cyan-200">0.00</span>
+                    </div>
+                </div>
+                <div class="mt-2 text-left">
+                    <span class="text-[10px] bg-sky-400/30 px-1.5 py-0.5 rounded-md font-bold text-white">تصفية الأمانات ↗</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Search & Filters Toolbar -->
+        <section class="bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs space-y-3 no-print">
+            <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
+                <!-- Search input -->
+                <div class="relative flex-1">
+                    <i class="fa-solid fa-magnifying-glass absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="renderTransactions()" placeholder="بحث بالوصف، الطرف الآخر، الملاحظات..." class="w-full pr-9 pl-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                </div>
+
+                <!-- Horizontal Scroll Category Chips on Mobile -->
+                <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 lg:pb-0 text-xs font-semibold">
+                    <button onclick="setFilterType('all')" class="filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-brand-600 bg-brand-600 text-white" data-type="all">الكل</button>
+                    <button onclick="setFilterType('deposit')" class="filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-type="deposit">إيداعات</button>
+                    <button onclick="setFilterType('withdraw')" class="filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-type="withdraw">سحوبات</button>
+                    <button onclick="setFilterType('debt')" class="filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-type="debt">الديون</button>
+                    <button onclick="setFilterType('trust')" class="filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300" data-type="trust">الأمانات</button>
+                </div>
+
+                <!-- Status Filter & Export -->
+                <div class="flex items-center gap-2 justify-end">
+                    <select id="statusFilter" onchange="renderTransactions()" class="flex-1 lg:flex-initial px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                        <option value="all">كل الحالات</option>
+                        <option value="pending">معلق / غير مسدد</option>
+                        <option value="settled">مسدد بالكامل / مسترد</option>
+                    </select>
+
+                    <button onclick="exportCSV()" title="تصدير كشف حساب CSV" class="p-2 sm:px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                        <span class="hidden sm:inline">تصدير</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transactions List / Table -->
+        <section class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs overflow-hidden">
+            <div class="px-4 py-3 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse"></span>
+                    <h3 class="font-bold text-slate-800 dark:text-white text-sm sm:text-base">سجل العمليات المالية</h3>
+                    <span id="transCount" class="text-[11px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 font-semibold">0</span>
+                </div>
+                <div class="flex items-center gap-2 text-xs text-slate-400">
+                    <span>العملات المعتمدة:</span>
+                    <span class="font-bold text-slate-700 dark:text-slate-200">$ USD / ج.م EGP</span>
+                </div>
+            </div>
+
+            <!-- Desktop Table View -->
+            <div class="hidden md:block overflow-x-auto">
+                <table class="w-full text-right text-sm">
+                    <thead class="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 text-xs font-semibold uppercase border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                            <th class="py-3 px-4">المعاملة والنوع</th>
+                            <th class="py-3 px-4">الطرف الآخر / الملاحظات</th>
+                            <th class="py-3 px-4">المحفظة / الحساب</th>
+                            <th class="py-3 px-4">التاريخ والاستحقاق</th>
+                            <th class="py-3 px-4">المبلغ والحالة</th>
+                            <th class="py-3 px-4 text-center">إجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody id="transactionsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/80 font-normal">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Mobile List (Card View) -->
+            <div id="transactionsMobileList" class="md:hidden divide-y divide-slate-100 dark:divide-slate-800/80 p-2 space-y-2">
+                <!-- Populated by JS -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center p-10 text-center text-slate-400">
+                <div class="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl mb-2 text-slate-400">
+                    <i class="fa-regular fa-folder-open"></i>
+                </div>
+                <h4 class="text-sm font-bold text-slate-700 dark:text-slate-300">لا توجد معاملات مطابقة</h4>
+                <p class="text-xs text-slate-400 mt-1 max-w-xs">أضف معاملة جديدة بالدولار أو الجنيه لتظهر هنا فوراً.</p>
+                <button onclick="openModal()" class="mt-3 px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-xs transition">
+                    + إضافة معاملة جديدة
+                </button>
+            </div>
+        </section>
+    </main>
+
+    <!-- Mobile Bottom App Bar (Optimized for Mobile Ergonomics) -->
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 py-2 flex items-center justify-around shadow-lg no-print">
+        <button onclick="window.scrollTo({top: 0, behavior: 'smooth'})" class="flex flex-col items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-brand-600 text-[10px] font-semibold">
+            <i class="fa-solid fa-chart-pie text-base"></i>
+            <span>الإحصائيات</span>
+        </button>
+
+        <button onclick="toggleCurrencyQuick()" class="flex flex-col items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-brand-600 text-[10px] font-semibold">
+            <i class="fa-solid fa-coins text-base"></i>
+            <span id="quickCurrencyToggleText">USD / EGP</span>
+        </button>
+
+        <!-- Floating Add Action Button -->
+        <button onclick="openModal()" class="-mt-5 w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center shadow-lg shadow-brand-500/30 active:scale-95 transition">
+            <i class="fa-solid fa-plus text-lg"></i>
+        </button>
+
+        <button onclick="openGitHubModal()" class="flex flex-col items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-brand-600 text-[10px] font-semibold">
+            <i class="fa-brands fa-github text-base"></i>
+            <span>GitHub</span>
+        </button>
+
+        <button onclick="exportCSV()" class="flex flex-col items-center gap-1 text-slate-600 dark:text-slate-400 hover:text-brand-600 text-[10px] font-semibold">
+            <i class="fa-solid fa-file-arrow-down text-base"></i>
+            <span>تصدير</span>
+        </button>
+    </nav>
+
+    <!-- Transaction Modal (Responsive: Centered on Desktop, Bottom-Sheet on Mobile) -->
+    <div id="transactionModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto no-print">
+        <div class="animate-slide-up sm:modal-animate bg-white dark:bg-slate-900 w-full sm:max-w-xl rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[92vh] flex flex-col">
+            <!-- Modal Header -->
+            <div class="px-5 py-3.5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-850">
+                <div class="flex items-center gap-2.5">
+                    <div id="modalIconContainer" class="w-8 h-8 rounded-xl bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-sm">
+                        <i id="modalIcon" class="fa-solid fa-plus"></i>
+                    </div>
+                    <div>
+                        <h3 id="modalTitle" class="text-sm sm:text-base font-bold text-slate-900 dark:text-white">إضافة معاملة جديدة</h3>
+                        <p class="text-[11px] text-slate-400">حدد بدقة المبلغ بالدولار أو الجنيه وتفاصيل المعاملة</p>
+                    </div>
+                </div>
+                <button onclick="closeModal()" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Form Scrollable Area -->
+            <form id="transactionForm" onsubmit="saveTransaction(event)" class="p-4 sm:p-6 space-y-3.5 overflow-y-auto flex-1">
+                <input type="hidden" id="transId">
+
+                <!-- 1. Transaction Type Selector -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">نوع المعاملة المالية *</label>
+                    <div class="grid grid-cols-4 gap-1.5 sm:gap-2">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="transType" value="deposit" class="peer hidden" checked onchange="updateFormDynamicFields()">
+                            <div class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-center peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-950/40 peer-checked:text-emerald-600 transition">
+                                <i class="fa-solid fa-circle-down block text-sm sm:text-base mb-1"></i>
+                                <span class="text-[11px] font-bold block">إيداع</span>
+                            </div>
+                        </label>
+
+                        <label class="cursor-pointer">
+                            <input type="radio" name="transType" value="withdraw" class="peer hidden" onchange="updateFormDynamicFields()">
+                            <div class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-center peer-checked:border-rose-500 peer-checked:bg-rose-50 dark:peer-checked:bg-rose-950/40 peer-checked:text-rose-600 transition">
+                                <i class="fa-solid fa-circle-up block text-sm sm:text-base mb-1"></i>
+                                <span class="text-[11px] font-bold block">سحب</span>
+                            </div>
+                        </label>
+
+                        <label class="cursor-pointer">
+                            <input type="radio" name="transType" value="debt" class="peer hidden" onchange="updateFormDynamicFields()">
+                            <div class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-center peer-checked:border-amber-500 peer-checked:bg-amber-50 dark:peer-checked:bg-amber-950/40 peer-checked:text-amber-600 transition">
+                                <i class="fa-solid fa-handshake block text-sm sm:text-base mb-1"></i>
+                                <span class="text-[11px] font-bold block">دَين</span>
+                            </div>
+                        </label>
+
+                        <label class="cursor-pointer">
+                            <input type="radio" name="transType" value="trust" class="peer hidden" onchange="updateFormDynamicFields()">
+                            <div class="p-2 sm:p-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 text-center peer-checked:border-sky-500 peer-checked:bg-sky-50 dark:peer-checked:bg-sky-950/40 peer-checked:text-sky-600 transition">
+                                <i class="fa-solid fa-box-archive block text-sm sm:text-base mb-1"></i>
+                                <span class="text-[11px] font-bold block">أمانة</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 2. Sub-Direction for Debt and Trust -->
+                <div id="subDirectionContainer" class="hidden p-3 bg-amber-50/70 dark:bg-slate-850 rounded-2xl border border-amber-200 dark:border-slate-700">
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5" id="subDirectionLabel">تحديد اتجاه المعاملة *</label>
+                    <div class="grid grid-cols-2 gap-2" id="debtDirectionOptions">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="subDirection" value="to_me" class="peer hidden" checked>
+                            <div class="p-2 text-center text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 peer-checked:bg-emerald-600 peer-checked:text-white peer-checked:border-emerald-600 transition font-bold">
+                                <i class="fa-solid fa-arrow-turn-down ml-1"></i> دين لي (أطالب به)
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="subDirection" value="on_me" class="peer hidden">
+                            <div class="p-2 text-center text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 peer-checked:bg-rose-600 peer-checked:text-white peer-checked:border-rose-600 transition font-bold">
+                                <i class="fa-solid fa-arrow-turn-up ml-1"></i> دين عليّ (ملتزم به)
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2 hidden" id="trustDirectionOptions">
+                        <label class="cursor-pointer">
+                            <input type="radio" name="trustDirection" value="with_me" class="peer hidden" checked>
+                            <div class="p-2 text-center text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 peer-checked:bg-sky-600 peer-checked:text-white peer-checked:border-sky-600 transition font-bold">
+                                <i class="fa-solid fa-shield-halved ml-1"></i> أمانة عندي (عهدة)
+                            </div>
+                        </label>
+                        <label class="cursor-pointer">
+                            <input type="radio" name="trustDirection" value="with_others" class="peer hidden">
+                            <div class="p-2 text-center text-xs rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 peer-checked:bg-indigo-600 peer-checked:text-white peer-checked:border-indigo-600 transition font-bold">
+                                <i class="fa-solid fa-key ml-1"></i> أمانة لي عند غيري
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 3. Amount & Currency (Restricted strictly to USD & EGP) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">المبلغ *</label>
+                        <input type="number" step="any" min="0.01" id="transAmount" required placeholder="0.00" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base font-extrabold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-brand-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">العملة المحددة *</label>
+                        <select id="transCurrency" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                            <option value="USD">🇺🇸 دولار ($ USD)</option>
+                            <option value="EGP">🇪🇬 جنيه (ج.م EGP)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 4. Title & Second Party -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الوصف أو التصنيف *</label>
+                        <input type="text" id="transTitle" required placeholder="مثال: تحويل عمل، سداد إيجار، سلفة سفر..." class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1" id="partyLabel">الطرف الآخر (الاسم أو الجهة)</label>
+                        <input type="text" id="transParty" placeholder="مثال: فلان، البنك، الشركة..." class="w-full px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                    </div>
+                </div>
+
+                <!-- 5. Account & Dates -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">المحفظة / الحساب *</label>
+                        <select id="transAccount" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                            <option value="كاش (نقدي)">💵 كاش (نقدي)</option>
+                            <option value="الحساب البنكي">🏦 الحساب البنكي</option>
+                            <option value="محفظة فودافون / InstaPay">📱 محفظة إلكترونية / إنستاباي</option>
+                            <option value="حساب PayPal / Payoneer">🌐 محفظة دولية (PayPal/Payoneer)</option>
+                            <option value="بطاقة ائتمان">💳 بطاقة ائتمان</option>
+                            <option value="أخرى">📁 أخرى</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">تاريخ المعاملة *</label>
+                        <input type="date" id="transDate" required class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                    </div>
+
+                    <div id="dueDateWrapper">
+                        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">تاريخ الاستحقاق/الرد</label>
+                        <input type="date" id="transDueDate" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white">
+                    </div>
+                </div>
+
+                <!-- 6. Status Toggle -->
+                <div id="statusToggleWrapper" class="hidden p-3 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs font-bold text-slate-800 dark:text-white block">حالة التسوية والرد</span>
+                        <span class="text-[10px] text-slate-400">هل تم تسديد أو استرداد هذا المبلغ بالكامل؟</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="transSettled" class="sr-only peer">
+                        <div class="w-11 h-6 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                </div>
+
+                <!-- 7. Notes -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">ملاحظات إضافية / رقم السند أو الحوالة</label>
+                    <textarea id="transNotes" rows="2" placeholder="أية تفاصيل، شروط سداد، أو أرقام مراجع..." class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div class="pt-2 border-t border-slate-200 dark:border-slate-800 flex items-center justify-end gap-2">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold">إلغاء</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-md shadow-brand-500/30">حفظ المعاملة</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- GitHub Sync Configuration Modal -->
+    <div id="githubModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto no-print">
+        <div class="animate-slide-up sm:modal-animate bg-white dark:bg-slate-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-slate-900 text-white dark:bg-slate-800 flex items-center justify-center text-lg">
+                        <i class="fa-brands fa-github"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">ربط ومزامنة GitHub</h3>
+                        <p class="text-[11px] text-slate-400">حفظ واسترجاع معاملاتك مباشرة من مستودعك الخاص</p>
+                    </div>
+                </div>
+                <button onclick="closeGitHubModal()" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">اسم المستخدم (GitHub Username) *</label>
+                    <input type="text" id="ghUsername" placeholder="مثال: your-username" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white font-mono">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">اسم المستودع (Repository Name) *</label>
+                    <input type="text" id="ghRepo" placeholder="مثال: my-finance-vault" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white font-mono">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">مسار ملف البيانات (File Path)</label>
+                    <input type="text" id="ghPath" value="finance-data.json" placeholder="finance-data.json" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white font-mono">
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">رمز الدخول الشخصي (Personal Access Token) *</label>
+                    <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white font-mono text-[11px]">
+                    <span class="text-[10px] text-slate-400 mt-0.5 block">يتطلب صلاحية `repo` لقراءة وتحديث الملف. يتم حفظه في متصفحك فقط.</span>
+                </div>
+            </div>
+
+            <!-- Action Buttons for GitHub -->
+            <div class="pt-2 flex flex-col gap-2">
+                <div class="grid grid-cols-2 gap-2">
+                    <button onclick="pullFromGitHub()" id="btnGhPull" class="py-2.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                        <i class="fa-solid fa-cloud-arrow-down text-sky-500"></i>
+                        <span>استرجاع من GitHub</span>
+                    </button>
+                    <button onclick="pushToGitHub()" id="btnGhPush" class="py-2.5 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs">
+                        <i class="fa-solid fa-cloud-arrow-up text-white"></i>
+                        <span>حفظ في GitHub</span>
+                    </button>
+                </div>
+                <button onclick="saveGitHubConfig()" class="w-full py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs font-semibold">
+                    حفظ الإعدادات محلياً
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settlement Quick Modal -->
+    <div id="settleModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-center justify-center p-4 no-print">
+        <div class="animate-slide-up bg-white dark:bg-slate-900 w-full max-w-sm rounded-3xl border border-slate-200 dark:border-slate-800 p-5 space-y-4 shadow-2xl">
+            <div class="text-center">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 mx-auto flex items-center justify-center text-xl mb-2">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+                <h3 class="text-base font-bold text-slate-900 dark:text-white">تأكيد التسوية والرد</h3>
+                <p id="settleModalSubtitle" class="text-xs text-slate-500 mt-1">هل ترغب بتأكيد سداد أو استرداد كامل المبلغ؟</p>
+            </div>
+
+            <div class="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl text-center">
+                <span class="text-xs text-slate-400 block">المبلغ المعني</span>
+                <span id="settleModalAmount" class="text-lg font-extrabold text-slate-800 dark:text-white">0.00</span>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="closeSettleModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold">تراجع</button>
+                <button onclick="confirmSettle()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30">تأكيد التسوية</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toastBox" class="fixed bottom-16 md:bottom-5 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-5 z-50 transform translate-y-24 opacity-0 transition-all duration-300 pointer-events-none w-[90%] sm:w-auto">
+        <div class="bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 text-xs font-bold justify-center">
+            <i id="toastIcon" class="fa-solid fa-circle-info text-brand-400"></i>
+            <span id="toastMsg">تمت العملية بنجاح</span>
+        </div>
+    </div>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // Core App State
+        let activeDisplayCurrency = 'USD'; // 'USD' or 'EGP'
+        let currentFilterType = 'all';
+        let settleTargetId = null;
+
+        // GitHub API Integration State (Pre-configured)
+        let githubConfig = {
+            username: 'eghaegypt2025',
+            repo: 'personal_finance',
+            path: 'finance-data.json',
+            token: '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',
+            lastSha: null
+        };
+
+        // In-memory transactions (تم تصفير جميع البيانات لتبدأ بحساب نظيف)
+        let transactions = [];
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('transDate').value = today;
+
+            // Load GitHub config from local memory if available
+            loadGitHubConfig();
+
+            // Set system color mode
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+
+            renderTransactions();
+            updateFormDynamicFields();
+
+            // Auto-fetch data from GitHub repository on initial startup
+            if (githubConfig.username && githubConfig.repo && githubConfig.token) {
+                pullFromGitHub(true); // Silent initial load
+            }
+        });
+
+        // Toggle Theme
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        // Active Display Currency Switcher (USD / EGP)
+        function setActiveDisplayCurrency(curr) {
+            activeDisplayCurrency = curr;
+
+            const btnUsd = document.getElementById('btnCurrencyUSD');
+            const btnEgp = document.getElementById('btnCurrencyEGP');
+            const pill = document.getElementById('activeCurrencyPill');
+            const sub = document.getElementById('statCurrencySublabel');
+
+            if (curr === 'USD') {
+                btnUsd.className = 'px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-700 text-brand-600 dark:text-white shadow-xs font-bold';
+                btnEgp.className = 'px-2.5 py-1 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-800 font-bold';
+                pill.textContent = 'USD $';
+                sub.textContent = 'إحصائيات الدولار الأمريكي';
+            } else {
+                btnEgp.className = 'px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-700 text-brand-600 dark:text-white shadow-xs font-bold';
+                btnUsd.className = 'px-2.5 py-1 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-800 font-bold';
+                pill.textContent = 'EGP ج.م';
+                sub.textContent = 'إحصائيات الجنيه المصري';
+            }
+
+            document.getElementById('quickCurrencyToggleText').textContent = curr;
+            renderTransactions();
+        }
+
+        function toggleCurrencyQuick() {
+            setActiveDisplayCurrency(activeDisplayCurrency === 'USD' ? 'EGP' : 'USD');
+        }
+
+        // Change Category Filter
+        function setFilterType(type) {
+            currentFilterType = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.getAttribute('data-type') === type) {
+                    btn.className = 'filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-brand-600 bg-brand-600 text-white font-bold transition';
+                } else {
+                    btn.className = 'filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition';
+                }
+            });
+
+            // Update interactive visual active state on the Stat Cards
+            updateCardHighlights(type);
+
+            renderTransactions();
+        }
+
+        // Highlight active stat card
+        function updateCardHighlights(type) {
+            const cardMap = {
+                'all': 'cardAll',
+                'deposit': 'cardDeposit',
+                'withdraw': 'cardWithdraw',
+                'debt': 'cardDebt',
+                'trust': 'cardTrust'
+            };
+
+            Object.values(cardMap).forEach(cardId => {
+                const el = document.getElementById(cardId);
+                if (el) el.classList.remove('active-card');
+            });
+
+            const activeCardId = cardMap[type];
+            if (activeCardId) {
+                const activeEl = document.getElementById(activeCardId);
+                if (activeEl) activeEl.classList.add('active-card');
+            }
+        }
+
+        // Stats calculation separated cleanly by active currency
+        function updateStats() {
+            let totalDeposit = 0;
+            let totalWithdraw = 0;
+            let debtToMe = 0;
+            let debtOnMe = 0;
+            let trustWithMe = 0;
+            let trustWithOthers = 0;
+
+            transactions.forEach(t => {
+                if (t.currency !== activeDisplayCurrency) return;
+
+                const amt = parseFloat(t.amount) || 0;
+                if (t.type === 'deposit') {
+                    totalDeposit += amt;
+                } else if (t.type === 'withdraw') {
+                    totalWithdraw += amt;
+                } else if (t.type === 'debt') {
+                    if (!t.settled) {
+                        if (t.subDirection === 'to_me') debtToMe += amt;
+                        else if (t.subDirection === 'on_me') debtOnMe += amt;
+                    }
+                } else if (t.type === 'trust') {
+                    if (!t.settled) {
+                        if (t.subDirection === 'with_me') trustWithMe += amt;
+                        else if (t.subDirection === 'with_others') trustWithOthers += amt;
+                    }
+                }
+            });
+
+            const netBalance = totalDeposit - totalWithdraw;
+
+            document.getElementById('statNetBalance').textContent = formatCurrency(netBalance);
+            document.getElementById('statTotalDeposit').textContent = formatCurrency(totalDeposit);
+            document.getElementById('statTotalWithdraw').textContent = formatCurrency(totalWithdraw);
+            document.getElementById('statDebtToMe').textContent = formatCurrency(debtToMe);
+            document.getElementById('statDebtOnMe').textContent = formatCurrency(debtOnMe);
+            document.getElementById('statTrustHeld').textContent = formatCurrency(trustWithMe);
+            document.getElementById('statTrustGiven').textContent = formatCurrency(trustWithOthers);
+        }
+
+        function formatCurrency(num) {
+            return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        // Render Transactions List & Table
+        function renderTransactions() {
+            updateStats();
+
+            const query = (document.getElementById('searchInput').value || '').trim().toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            const filtered = transactions.filter(item => {
+                if (currentFilterType !== 'all' && item.type !== currentFilterType) return false;
+                if (statusFilter === 'pending' && item.settled) return false;
+                if (statusFilter === 'settled' && !item.settled) return false;
+
+                if (query) {
+                    const matchTitle = (item.title || '').toLowerCase().includes(query);
+                    const matchParty = (item.party || '').toLowerCase().includes(query);
+                    const matchNotes = (item.notes || '').toLowerCase().includes(query);
+                    const matchAccount = (item.account || '').toLowerCase().includes(query);
+                    const matchCurrency = (item.currency || '').toLowerCase().includes(query);
+                    return matchTitle || matchParty || matchNotes || matchAccount || matchCurrency;
+                }
+                return true;
+            });
+
+            document.getElementById('transCount').textContent = `${filtered.length} عملية`;
+
+            const tbody = document.getElementById('transactionsTableBody');
+            const mobileContainer = document.getElementById('transactionsMobileList');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                mobileContainer.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+            }
+
+            // Desktop Table Rows
+            tbody.innerHTML = filtered.map(item => {
+                const badge = getTypeBadge(item);
+                const statusBadge = getStatusBadge(item);
+                const isDebtOrTrust = (item.type === 'debt' || item.type === 'trust');
+                const currSymbol = item.currency === 'USD' ? '$' : 'ج.م';
+
+                return `
+                    <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition">
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            <div class="flex items-center gap-3">
+                                ${getTypeIcon(item)}
+                                <div>
+                                    <div class="font-bold text-slate-800 dark:text-white">${escapeHtml(item.title)}</div>
+                                    <div class="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+                                        ${badge}
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-3.5 px-4">
+                            <div class="text-xs font-semibold text-slate-700 dark:text-slate-200">
+                                <i class="fa-regular fa-user ml-1 text-slate-400"></i>
+                                ${item.party ? escapeHtml(item.party) : '<span class="text-slate-400 font-normal">غير محدد</span>'}
+                            </div>
+                            ${item.notes ? `<p class="text-[11px] text-slate-400 mt-0.5 truncate max-w-xs" title="${escapeHtml(item.notes)}">${escapeHtml(item.notes)}</p>` : ''}
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap text-xs text-slate-600 dark:text-slate-300 font-medium">
+                            ${escapeHtml(item.account)}
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            <div class="text-xs text-slate-600 dark:text-slate-300">${item.date}</div>
+                            ${item.dueDate ? `
+                                <div class="text-[11px] text-amber-600 dark:text-amber-400 font-bold mt-0.5">
+                                    <i class="fa-regular fa-clock ml-1"></i> استحقاق: ${item.dueDate}
+                                </div>
+                            ` : ''}
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap">
+                            <div class="font-black text-sm ${getAmountColor(item)}">
+                                ${getAmountPrefix(item)} ${formatCurrency(item.amount)} 
+                                <span class="text-xs font-bold px-1.5 py-0.5 rounded-md ${item.currency === 'USD' ? 'bg-sky-100 text-sky-700 dark:bg-sky-950/60 dark:text-sky-300' : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'}">${currSymbol} ${item.currency}</span>
+                            </div>
+                            <div class="mt-1">${statusBadge}</div>
+                        </td>
+                        <td class="py-3.5 px-4 whitespace-nowrap text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                ${isDebtOrTrust && !item.settled ? `
+                                    <button onclick="promptSettle('${item.id}')" title="تسجيل سداد / رد" class="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 flex items-center justify-center transition">
+                                        <i class="fa-solid fa-check text-xs"></i>
+                                    </button>
+                                ` : ''}
+                                <button onclick="editTransaction('${item.id}')" title="تعديل" class="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center justify-center transition">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                </button>
+                                <button onclick="deleteTransaction('${item.id}')" title="حذف" class="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 flex items-center justify-center transition">
+                                    <i class="fa-regular fa-trash-can text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+
+            // Mobile Responsive Card List
+            mobileContainer.innerHTML = filtered.map(item => {
+                const badge = getTypeBadge(item);
+                const statusBadge = getStatusBadge(item);
+                const isDebtOrTrust = (item.type === 'debt' || item.type === 'trust');
+                const currSymbol = item.currency === 'USD' ? '$' : 'ج.م';
+
+                return `
+                    <div class="p-3.5 rounded-2xl bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 space-y-2.5 shadow-xs">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="flex items-center gap-2.5">
+                                ${getTypeIcon(item)}
+                                <div>
+                                    <h4 class="font-extrabold text-sm text-slate-900 dark:text-white leading-tight">${escapeHtml(item.title)}</h4>
+                                    <div class="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
+                                        <span>${item.date}</span>
+                                        <span>•</span>
+                                        <span class="truncate max-w-[120px]">${escapeHtml(item.account)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-left shrink-0">
+                                <span class="font-black text-sm ${getAmountColor(item)}">
+                                    ${getAmountPrefix(item)} ${formatCurrency(item.amount)}
+                                </span>
+                                <span class="text-[10px] font-bold block text-slate-400">${currSymbol} ${item.currency}</span>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap items-center justify-between gap-1.5 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                            <div class="flex items-center gap-1.5">
+                                ${badge}
+                                ${statusBadge}
+                            </div>
+                            ${item.party ? `
+                                <div class="text-[11px] text-slate-600 dark:text-slate-300 font-semibold truncate max-w-[140px]">
+                                    <i class="fa-regular fa-user ml-1 text-slate-400"></i> ${escapeHtml(item.party)}
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        ${item.dueDate ? `
+                            <div class="text-[11px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-xl flex items-center justify-between">
+                                <span><i class="fa-regular fa-clock ml-1"></i> تاريخ الاستحقاق:</span>
+                                <span>${item.dueDate}</span>
+                            </div>
+                        ` : ''}
+
+                        ${item.notes ? `
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 p-2 rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                                ${escapeHtml(item.notes)}
+                            </p>
+                        ` : ''}
+
+                        <div class="flex items-center justify-end gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                            ${isDebtOrTrust && !item.settled ? `
+                                <button onclick="promptSettle('${item.id}')" class="px-3 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center gap-1 shadow-xs">
+                                    <i class="fa-solid fa-check text-[10px]"></i> تسوية
+                                </button>
+                            ` : ''}
+                            <button onclick="editTransaction('${item.id}')" class="p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800">
+                                <i class="fa-solid fa-pen text-xs"></i>
+                            </button>
+                            <button onclick="deleteTransaction('${item.id}')" class="p-2 rounded-xl text-rose-500 hover:bg-rose-50 dark:hover:bg-slate-800">
+                                <i class="fa-regular fa-trash-can text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Helpers
+        function getTypeIcon(item) {
+            if (item.type === 'deposit') {
+                return '<div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 text-xs sm:text-sm"><i class="fa-solid fa-arrow-down"></i></div>';
+            }
+            if (item.type === 'withdraw') {
+                return '<div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0 text-xs sm:text-sm"><i class="fa-solid fa-arrow-up"></i></div>';
+            }
+            if (item.type === 'debt') {
+                return '<div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 text-xs sm:text-sm"><i class="fa-solid fa-hand-holding-dollar"></i></div>';
+            }
+            return '<div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-sky-100 dark:bg-sky-950/60 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0 text-xs sm:text-sm"><i class="fa-solid fa-vault"></i></div>';
+        }
+
+        function getTypeBadge(item) {
+            if (item.type === 'deposit') return '<span class="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">إيداع</span>';
+            if (item.type === 'withdraw') return '<span class="px-2 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[10px]">سحب</span>';
+            if (item.type === 'debt') {
+                return item.subDirection === 'to_me' 
+                    ? '<span class="px-2 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold text-[10px]">دين لي</span>'
+                    : '<span class="px-2 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 font-bold text-[10px]">دين علي</span>';
+            }
+            if (item.type === 'trust') {
+                return item.subDirection === 'with_me'
+                    ? '<span class="px-2 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold text-[10px]">أمانة عندي</span>'
+                    : '<span class="px-2 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold text-[10px]">أمانة لي عند غيري</span>';
+            }
+            return '';
+        }
+
+        function getStatusBadge(item) {
+            if (item.type === 'deposit' || item.type === 'withdraw') {
+                return '<span class="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold"><i class="fa-solid fa-circle-check text-[9px]"></i> مكتمل</span>';
+            }
+            if (item.settled) {
+                return '<span class="px-1.5 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]"><i class="fa-solid fa-check-double text-[9px]"></i> مسدد/مسترد</span>';
+            }
+            return '<span class="px-1.5 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 font-bold text-[10px]"><i class="fa-regular fa-clock text-[9px]"></i> معلق</span>';
+        }
+
+        function getAmountColor(item) {
+            if (item.type === 'deposit') return 'text-emerald-600 dark:text-emerald-400';
+            if (item.type === 'withdraw') return 'text-rose-600 dark:text-rose-400';
+            if (item.type === 'debt') {
+                return item.subDirection === 'to_me' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+            }
+            return 'text-sky-600 dark:text-sky-400';
+        }
+
+        function getAmountPrefix(item) {
+            if (item.type === 'deposit') return '+';
+            if (item.type === 'withdraw') return '-';
+            if (item.type === 'debt') return item.subDirection === 'to_me' ? '+ (له)' : '- (عليه)';
+            return '•';
+        }
+
+        // Modal Controls
+        function openModal(editId = null) {
+            const modal = document.getElementById('transactionModal');
+            const form = document.getElementById('transactionForm');
+            form.reset();
+
+            if (editId) {
+                const item = transactions.find(t => t.id === editId);
+                if (!item) return;
+
+                document.getElementById('transId').value = item.id;
+                document.getElementById('modalTitle').textContent = 'تعديل المعاملة المالية';
+                document.querySelector(`input[name="transType"][value="${item.type}"]`).checked = true;
+
+                updateFormDynamicFields();
+
+                if (item.type === 'debt') {
+                    const subRadio = document.querySelector(`input[name="subDirection"][value="${item.subDirection}"]`);
+                    if (subRadio) subRadio.checked = true;
+                } else if (item.type === 'trust') {
+                    const trustRadio = document.querySelector(`input[name="trustDirection"][value="${item.subDirection}"]`);
+                    if (trustRadio) trustRadio.checked = true;
+                }
+
+                document.getElementById('transAmount').value = item.amount;
+                document.getElementById('transCurrency').value = item.currency || 'USD';
+                document.getElementById('transTitle').value = item.title;
+                document.getElementById('transParty').value = item.party || '';
+                document.getElementById('transAccount').value = item.account;
+                document.getElementById('transDate').value = item.date;
+                document.getElementById('transDueDate').value = item.dueDate || '';
+                document.getElementById('transSettled').checked = !!item.settled;
+                document.getElementById('transNotes').value = item.notes || '';
+            } else {
+                document.getElementById('transId').value = '';
+                document.getElementById('modalTitle').textContent = 'إضافة معاملة جديدة';
+                document.querySelector('input[name="transType"][value="deposit"]').checked = true;
+                document.getElementById('transCurrency').value = activeDisplayCurrency;
+                document.getElementById('transDate').value = new Date().toISOString().split('T')[0];
+                updateFormDynamicFields();
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('transactionModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function updateFormDynamicFields() {
+            const selectedType = document.querySelector('input[name="transType"]:checked').value;
+            const subContainer = document.getElementById('subDirectionContainer');
+            const debtOpts = document.getElementById('debtDirectionOptions');
+            const trustOpts = document.getElementById('trustDirectionOptions');
+            const statusToggleWrapper = document.getElementById('statusToggleWrapper');
+            const dueDateWrapper = document.getElementById('dueDateWrapper');
+            const partyLabel = document.getElementById('partyLabel');
+            const subDirectionLabel = document.getElementById('subDirectionLabel');
+
+            if (selectedType === 'debt') {
+                subContainer.classList.remove('hidden');
+                debtOpts.classList.remove('hidden');
+                trustOpts.classList.add('hidden');
+                statusToggleWrapper.classList.remove('hidden');
+                dueDateWrapper.classList.remove('hidden');
+                subDirectionLabel.textContent = 'تحديد اتجاه الدين *';
+                partyLabel.textContent = 'اسم الغريم / الطرف الآخر *';
+            } else if (selectedType === 'trust') {
+                subContainer.classList.remove('hidden');
+                debtOpts.classList.add('hidden');
+                trustOpts.classList.remove('hidden');
+                statusToggleWrapper.classList.remove('hidden');
+                dueDateWrapper.classList.remove('hidden');
+                subDirectionLabel.textContent = 'تحديد طبيعة الأمانة *';
+                partyLabel.textContent = 'صاحب الأمانة / المؤتمن *';
+            } else {
+                subContainer.classList.add('hidden');
+                statusToggleWrapper.classList.add('hidden');
+                partyLabel.textContent = selectedType === 'deposit' ? 'المودع / المصدر' : 'المستفيد / المتجر';
+            }
+        }
+
+        // Save Transaction
+        function saveTransaction(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('transId').value;
+            const type = document.querySelector('input[name="transType"]:checked').value;
+            const amount = parseFloat(document.getElementById('transAmount').value);
+            const currency = document.getElementById('transCurrency').value; // 'USD' or 'EGP'
+            const title = document.getElementById('transTitle').value.trim();
+            const party = document.getElementById('transParty').value.trim();
+            const account = document.getElementById('transAccount').value;
+            const date = document.getElementById('transDate').value;
+            const dueDate = document.getElementById('transDueDate').value || null;
+            const notes = document.getElementById('transNotes').value.trim();
+
+            let subDirection = null;
+            let settled = true;
+
+            if (type === 'debt') {
+                subDirection = document.querySelector('input[name="subDirection"]:checked')?.value || 'to_me';
+                settled = document.getElementById('transSettled').checked;
+            } else if (type === 'trust') {
+                subDirection = document.querySelector('input[name="trustDirection"]:checked')?.value || 'with_me';
+                settled = document.getElementById('transSettled').checked;
+            }
+
+            if (!amount || amount <= 0) {
+                showToast('يرجى كتابة مبلغ صحيح', 'warning');
+                return;
+            }
+
+            if (id) {
+                const index = transactions.findIndex(t => t.id === id);
+                if (index !== -1) {
+                    transactions[index] = {
+                        ...transactions[index],
+                        type,
+                        subDirection,
+                        amount,
+                        currency,
+                        title,
+                        party,
+                        account,
+                        date,
+                        dueDate,
+                        settled,
+                        notes
+                    };
+                    showToast('تم تحديث المعاملة بنجاح');
+                }
+            } else {
+                const newTransaction = {
+                    id: 'tx-' + Date.now(),
+                    type,
+                    subDirection,
+                    amount,
+                    currency,
+                    title,
+                    party,
+                    account,
+                    date,
+                    dueDate,
+                    settled,
+                    notes
+                };
+                transactions.unshift(newTransaction);
+                showToast('تمت إضافة المعاملة بنجاح');
+            }
+
+            closeModal();
+            renderTransactions();
+
+            // Auto-sync with GitHub if token and repo are already configured
+            if (githubConfig.token && githubConfig.repo && githubConfig.username) {
+                pushToGitHub(true); // Silent push
+            }
+        }
+
+        function editTransaction(id) {
+            openModal(id);
+        }
+
+        function deleteTransaction(id) {
+            transactions = transactions.filter(t => t.id !== id);
+            renderTransactions();
+            showToast('تم حذف المعاملة', 'info');
+
+            if (githubConfig.token && githubConfig.repo && githubConfig.username) {
+                pushToGitHub(true);
+            }
+        }
+
+        // Settlement Modal
+        function promptSettle(id) {
+            const item = transactions.find(t => t.id === id);
+            if (!item) return;
+
+            settleTargetId = id;
+            const currSymbol = item.currency === 'USD' ? '$' : 'ج.م';
+            document.getElementById('settleModalAmount').textContent = `${formatCurrency(item.amount)} ${currSymbol} ${item.currency}`;
+
+            const isDebt = item.type === 'debt';
+            const actionText = isDebt ? 'تسوية وسداد هذا الدين بالكامل' : 'تسليم واسترداد هذه الأمانة بالكامل';
+            document.getElementById('settleModalSubtitle').textContent = `هل ترغب بتأكيد ${actionText}؟`;
+
+            const modal = document.getElementById('settleModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeSettleModal() {
+            settleTargetId = null;
+            const modal = document.getElementById('settleModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmSettle() {
+            if (!settleTargetId) return;
+            const index = transactions.findIndex(t => t.id === settleTargetId);
+            if (index !== -1) {
+                transactions[index].settled = true;
+                showToast('تمت التسوية بنجاح');
+                renderTransactions();
+
+                if (githubConfig.token && githubConfig.repo && githubConfig.username) {
+                    pushToGitHub(true);
+                }
+            }
+            closeSettleModal();
+        }
+
+        // ==========================================
+        // GitHub API Integration & Sync Engine
+        // ==========================================
+        function openGitHubModal() {
+            document.getElementById('ghUsername').value = githubConfig.username || '';
+            document.getElementById('ghRepo').value = githubConfig.repo || '';
+            document.getElementById('ghPath').value = githubConfig.path || 'finance-data.json';
+            document.getElementById('ghToken').value = githubConfig.token || '';
+
+            const modal = document.getElementById('githubModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeGitHubModal() {
+            const modal = document.getElementById('githubModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function saveGitHubConfig() {
+            githubConfig.username = document.getElementById('ghUsername').value.trim();
+            githubConfig.repo = document.getElementById('ghRepo').value.trim();
+            githubConfig.path = document.getElementById('ghPath').value.trim() || 'finance-data.json';
+            githubConfig.token = document.getElementById('ghToken').value.trim();
+
+            updateGitHubBadge();
+            showToast('تم حفظ إعدادات GitHub محلياً');
+            closeGitHubModal();
+        }
+
+        function loadGitHubConfig() {
+            // Memory defaults; in non-sandboxed environment can be populated
+            updateGitHubBadge();
+        }
+
+        function updateGitHubBadge() {
+            const badge = document.getElementById('gitSyncBadge');
+            if (githubConfig.token && githubConfig.repo && githubConfig.username) {
+                badge.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+            } else {
+                badge.className = 'w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600';
+            }
+        }
+
+        // Push Transactions to GitHub Repository
+        async function pushToGitHub(isSilent = false) {
+            githubConfig.username = document.getElementById('ghUsername').value.trim() || githubConfig.username;
+            githubConfig.repo = document.getElementById('ghRepo').value.trim() || githubConfig.repo;
+            githubConfig.path = document.getElementById('ghPath').value.trim() || githubConfig.path || 'finance-data.json';
+            githubConfig.token = document.getElementById('ghToken').value.trim() || githubConfig.token;
+
+            if (!githubConfig.username || !githubConfig.repo || !githubConfig.token) {
+                if (!isSilent) openGitHubModal();
+                showToast('يرجى استكمال بيانات GitHub والـ Token أولاً', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('btnGhPush');
+            if (!isSilent && btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جار الحفظ...';
+            }
+
+            try {
+                const apiUrl = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${githubConfig.path}`;
+                
+                // 1. Get existing file SHA if needed
+                let currentSha = githubConfig.lastSha;
+                if (!currentSha) {
+                    const checkRes = await fetch(apiUrl, {
+                        headers: {
+                            'Authorization': `token ${githubConfig.token}`,
+                            'Accept': 'application/vnd.github.v3+json'
+                        }
+                    });
+                    if (checkRes.ok) {
+                        const fileData = await checkRes.json();
+                        currentSha = fileData.sha;
+                        githubConfig.lastSha = currentSha;
+                    }
+                }
+
+                // 2. Prepare content base64 encoded
+                const payloadContent = {
+                    updatedAt: new Date().toISOString(),
+                    transactions: transactions
+                };
+                const utf8Bytes = new TextEncoder().encode(JSON.stringify(payloadContent, null, 2));
+                let binaryStr = '';
+                utf8Bytes.forEach(b => binaryStr += String.fromCharCode(b));
+                const base64Content = btoa(binaryStr);
+
+                // 3. Put request to commit file
+                const commitBody = {
+                    message: `تحديث المعاملات المالية [${new Date().toISOString()}]`,
+                    content: base64Content,
+                    sha: currentSha || undefined
+                };
+
+                const res = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/vnd.github.v3+json'
+                    },
+                    body: JSON.stringify(commitBody)
+                });
+
+                if (res.ok) {
+                    const responseJson = await res.json();
+                    githubConfig.lastSha = responseJson.content?.sha;
+                    updateGitHubBadge();
+                    showToast('تمت المزامنة وحفظ البيانات في GitHub بنجاح');
+                } else {
+                    const err = await res.json();
+                    showToast(`خطأ من GitHub: ${err.message || 'فشلت المزامنة'}`, 'warning');
+                }
+            } catch (err) {
+                showToast('تعذر الاتصال بـ GitHub، يرجى فحص الشبكة والـ Token', 'warning');
+            } finally {
+                if (!isSilent && btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-white"></i> <span>حفظ في GitHub</span>';
+                }
+            }
+        }
+
+        // Pull Transactions from GitHub Repository
+        async function pullFromGitHub(isSilent = false) {
+            githubConfig.username = document.getElementById('ghUsername').value.trim() || githubConfig.username;
+            githubConfig.repo = document.getElementById('ghRepo').value.trim() || githubConfig.repo;
+            githubConfig.path = document.getElementById('ghPath').value.trim() || githubConfig.path || 'finance-data.json';
+            githubConfig.token = document.getElementById('ghToken').value.trim() || githubConfig.token;
+
+            if (!githubConfig.username || !githubConfig.repo || !githubConfig.token) {
+                if (!isSilent) showToast('يرجى إدخال اسم المستخدم والمستودع والـ Token', 'warning');
+                return;
+            }
+
+            const btn = document.getElementById('btnGhPull');
+            if (!isSilent && btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جار الاسترجاع...';
+            }
+
+            try {
+                const apiUrl = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${githubConfig.path}`;
+                const res = await fetch(apiUrl, {
+                    headers: {
+                        'Authorization': `token ${githubConfig.token}`,
+                        'Accept': 'application/vnd.github.v3+json'
+                    }
+                });
+
+                if (res.ok) {
+                    const fileData = await res.json();
+                    githubConfig.lastSha = fileData.sha;
+
+                    // Decode UTF8 base64
+                    const binaryStr = atob(fileData.content.replace(/\n/g, ''));
+                    const bytes = new Uint8Array(binaryStr.length);
+                    for (let i = 0; i < binaryStr.length; i++) {
+                        bytes[i] = binaryStr.charCodeAt(i);
+                    }
+                    const jsonText = new TextDecoder().decode(bytes);
+                    const parsed = JSON.parse(jsonText);
+
+                    if (Array.isArray(parsed.transactions)) {
+                        transactions = parsed.transactions;
+                    } else if (Array.isArray(parsed)) {
+                        transactions = parsed;
+                    }
+
+                    renderTransactions();
+                    updateGitHubBadge();
+                    if (!isSilent) showToast('تم استرجاع ومزامنة البيانات من GitHub بنجاح');
+                    closeGitHubModal();
+                } else if (!isSilent) {
+                    const err = await res.json();
+                    showToast(`تعذر العثور على الملف: ${err.message || 'غير موجود'}`, 'warning');
+                }
+            } catch (err) {
+                if (!isSilent) showToast('فشل الاسترجاع، تحقق من الصلاحيات والإنترنت', 'warning');
+            } finally {
+                if (!isSilent && btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-down text-sky-500"></i> <span>استرجاع من GitHub</span>';
+                }
+            }
+        }
+
+        // Export CSV
+        function exportCSV() {
+            if (transactions.length === 0) {
+                showToast('لا توجد معاملات لتصديرها', 'warning');
+                return;
+            }
+
+            let csv = '\uFEFF';
+            csv += 'النوع,الوصف,الطرف المعني,المبلغ,العملة,الحساب,التاريخ,تاريخ الاستحقاق,الحالة,الملاحظات\n';
+
+            transactions.forEach(t => {
+                let typeName = t.type;
+                if (t.type === 'deposit') typeName = 'إيداع';
+                else if (t.type === 'withdraw') typeName = 'سحب';
+                else if (t.type === 'debt') typeName = t.subDirection === 'to_me' ? 'دين لي' : 'دين علي';
+                else if (t.type === 'trust') typeName = t.subDirection === 'with_me' ? 'أمانة عندي' : 'أمانة لي عند غيري';
+
+                const status = t.settled ? 'مسدد/مسترد' : 'معلق';
+                const row = [
+                    `"${typeName}"`,
+                    `"${(t.title || '').replace(/"/g, '""')}"`,
+                    `"${(t.party || '').replace(/"/g, '""')}"`,
+                    t.amount,
+                    `"${t.currency}"`,
+                    `"${t.account}"`,
+                    `"${t.date}"`,
+                    `"${t.dueDate || '-'}"`,
+                    `"${status}"`,
+                    `"${(t.notes || '').replace(/"/g, '""')}"`
+                ];
+                csv += row.join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `كشف_المعاملات_${activeDisplayCurrency}_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showToast('تم تصدير ملف المعاملات');
+        }
+
+        // Toast Helper
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toastBox');
+            const msgEl = document.getElementById('toastMsg');
+            const iconEl = document.getElementById('toastIcon');
+
+            msgEl.textContent = message;
+
+            if (type === 'warning') {
+                iconEl.className = 'fa-solid fa-triangle-exclamation text-amber-400';
+            } else if (type === 'info') {
+                iconEl.className = 'fa-solid fa-circle-info text-sky-400';
+            } else {
+                iconEl.className = 'fa-solid fa-circle-check text-emerald-400';
+            }
+
+            toast.classList.remove('translate-y-24', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-24', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+
+        // Safe HTML escape
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
