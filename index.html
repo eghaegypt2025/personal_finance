@@ -575,25 +575,25 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">رمز الدخول الشخصي (Personal Access Token) *</label>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">رمز الدخول الجديد (Personal Access Token) *</label>
                     <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white font-mono text-[11px]">
-                    <span class="text-[10px] text-slate-400 mt-0.5 block">يتطلب صلاحية `repo` لقراءة وتحديث الملف. يتم حفظه في متصفحك فقط.</span>
+                    <span class="text-[10px] text-amber-600 dark:text-amber-400 mt-1 block">⚠️ ألصق الرمز الجديد الذي يبدأ بـ ghp_ مع التأكد من تفعيل صلاحية repo.</span>
                 </div>
             </div>
 
             <!-- Action Buttons for GitHub -->
             <div class="pt-2 flex flex-col gap-2">
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="pullFromGitHub()" id="btnGhPull" class="py-2.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition">
+                    <button type="button" onclick="pullFromGitHub()" id="btnGhPull" class="py-2.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 transition">
                         <i class="fa-solid fa-cloud-arrow-down text-sky-500"></i>
                         <span>استرجاع من GitHub</span>
                     </button>
-                    <button onclick="pushToGitHub()" id="btnGhPush" class="py-2.5 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs">
+                    <button type="button" onclick="pushToGitHub()" id="btnGhPush" class="py-2.5 px-3 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-xs">
                         <i class="fa-solid fa-cloud-arrow-up text-white"></i>
                         <span>حفظ في GitHub</span>
                     </button>
                 </div>
-                <button onclick="saveGitHubConfig()" class="w-full py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs font-semibold">
+                <button type="button" onclick="saveGitHubConfig()" class="w-full py-2 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 text-xs font-semibold">
                     حفظ الإعدادات محلياً
                 </button>
             </div>
@@ -750,25 +750,40 @@
         let currentFilterType = 'all';
         let settleTargetId = null;
 
-        // GitHub API Integration State (Pre-configured)
+        // GitHub API Integration State
         let githubConfig = {
             username: 'eghaegypt2025',
             repo: 'personal_finance',
             path: 'finance-data.json',
-            token: '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',
+            token: '',
             lastSha: null
         };
 
-        // In-memory transactions (تم تصفير جميع البيانات لتبدأ بحساب نظيف)
+        // In-memory transactions
         let transactions = [];
+
+        // Safe Base64 UTF-8 Encoding/Decoding for Arabic text
+        function utf8ToBase64(str) {
+            return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+                return String.fromCharCode(parseInt(p1, 16));
+            }));
+        }
+
+        function base64ToUtf8(str) {
+            const cleanStr = str.replace(/\s/g, '');
+            return decodeURIComponent(Array.prototype.map.call(atob(cleanStr), function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+        }
 
         // Initialization
         window.addEventListener('DOMContentLoaded', () => {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('transDate').value = today;
 
-            // Load GitHub config from local memory if available
+            // Load GitHub config and cached data from localStorage
             loadGitHubConfig();
+            loadLocalTransactions();
 
             // Set system color mode
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -778,7 +793,7 @@
             renderTransactions();
             updateFormDynamicFields();
 
-            // Auto-fetch data from GitHub repository on initial startup
+            // Auto-fetch data from GitHub repository on initial startup if token exists
             if (githubConfig.username && githubConfig.repo && githubConfig.token) {
                 pullFromGitHub(true); // Silent initial load
             }
@@ -787,76 +802,26 @@
             checkSharedTrustUrl();
         });
 
-        // Toggle Theme
-        function toggleTheme() {
-            document.documentElement.classList.toggle('dark');
-        }
-
-        // Active Display Currency Switcher (USD / EGP)
-        function setActiveDisplayCurrency(curr) {
-            activeDisplayCurrency = curr;
-
-            const btnUsd = document.getElementById('btnCurrencyUSD');
-            const btnEgp = document.getElementById('btnCurrencyEGP');
-            const pill = document.getElementById('activeCurrencyPill');
-            const sub = document.getElementById('statCurrencySublabel');
-
-            if (curr === 'USD') {
-                btnUsd.className = 'px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-700 text-brand-600 dark:text-white shadow-xs font-bold';
-                btnEgp.className = 'px-2.5 py-1 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-800 font-bold';
-                pill.textContent = 'USD $';
-                sub.textContent = 'إحصائيات الدولار الأمريكي';
-            } else {
-                btnEgp.className = 'px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-700 text-brand-600 dark:text-white shadow-xs font-bold';
-                btnUsd.className = 'px-2.5 py-1 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-800 font-bold';
-                pill.textContent = 'EGP ج.م';
-                sub.textContent = 'إحصائيات الجنيه المصري';
+        // Local Storage Fallback & Cache
+        function saveLocalTransactions() {
+            try {
+                localStorage.setItem('pf_transactions', JSON.stringify(transactions));
+            } catch (e) {
+                console.warn('LocalStorage error:', e);
             }
-
-            document.getElementById('quickCurrencyToggleText').textContent = curr;
-            renderTransactions();
         }
 
-        function toggleCurrencyQuick() {
-            setActiveDisplayCurrency(activeDisplayCurrency === 'USD' ? 'EGP' : 'USD');
-        }
-
-        // Change Category Filter
-        function setFilterType(type) {
-            currentFilterType = type;
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                if (btn.getAttribute('data-type') === type) {
-                    btn.className = 'filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-brand-600 bg-brand-600 text-white font-bold transition';
-                } else {
-                    btn.className = 'filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-100 dark:hover:bg-slate-700 transition';
+        function loadLocalTransactions() {
+            try {
+                const stored = localStorage.getItem('pf_transactions');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (Array.isArray(parsed)) {
+                        transactions = parsed;
+                    }
                 }
-            });
-
-            // Update interactive visual active state on the Stat Cards
-            updateCardHighlights(type);
-
-            renderTransactions();
-        }
-
-        // Highlight active stat card
-        function updateCardHighlights(type) {
-            const cardMap = {
-                'all': 'cardAll',
-                'deposit': 'cardDeposit',
-                'withdraw': 'cardWithdraw',
-                'debt': 'cardDebt',
-                'trust': 'cardTrust'
-            };
-
-            Object.values(cardMap).forEach(cardId => {
-                const el = document.getElementById(cardId);
-                if (el) el.classList.remove('active-card');
-            });
-
-            const activeCardId = cardMap[type];
-            if (activeCardId) {
-                const activeEl = document.getElementById(activeCardId);
-                if (activeEl) activeEl.classList.add('active-card');
+            } catch (e) {
+                console.warn('LocalStorage load error:', e);
             }
         }
 
@@ -1292,11 +1257,12 @@
             }
 
             closeModal();
+            saveLocalTransactions();
             renderTransactions();
 
             // Auto-sync with GitHub if token and repo are already configured
             if (githubConfig.token && githubConfig.repo && githubConfig.username) {
-                pushToGitHub(true); // Silent push
+                pushToGitHub(true); // Background sync
             }
         }
 
@@ -1306,6 +1272,7 @@
 
         function deleteTransaction(id) {
             transactions = transactions.filter(t => t.id !== id);
+            saveLocalTransactions();
             renderTransactions();
             showToast('تم حذف المعاملة', 'info');
 
@@ -1339,191 +1306,12 @@
             modal.classList.remove('flex');
         }
 
-        // ==========================================
-        // Trust Card Sharing System (مشاركة بطاقة الأمانات)
-        // ==========================================
-        function openShareTrustModal(e) {
-            if (e) e.stopPropagation(); // منع تفعيل الفلتر عند الضغط على زر المشاركة
-
-            const modal = document.getElementById('shareTrustModal');
-            generateShareableTrustLink();
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-        }
-
-        function closeShareTrustModal() {
-            const modal = document.getElementById('shareTrustModal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-        }
-
-        // Generate encrypted/encoded standalone link for Trust Card
-        function generateShareableTrustLink() {
-            const scope = document.getElementById('shareTrustScope').value;
-            const trustItems = transactions.filter(t => {
-                if (t.type !== 'trust') return false;
-                if (scope === 'pending' && t.settled) return false;
-                if (scope === 'with_me' && t.subDirection !== 'with_me') return false;
-                if (scope === 'with_others' && t.subDirection !== 'with_others') return false;
-                return true;
-            });
-
-            // Strip sensitive fields, keep only trust records
-            const sanitizedTrust = trustItems.map(item => ({
-                t: item.title,
-                p: item.party,
-                a: item.amount,
-                c: item.currency,
-                d: item.subDirection,
-                dt: item.date,
-                dd: item.dueDate,
-                s: item.settled,
-                n: item.notes
-            }));
-
-            const payload = {
-                type: 'trust_portal',
-                cur: activeDisplayCurrency,
-                data: sanitizedTrust,
-                scope: scope,
-                date: new Date().toISOString().split('T')[0]
-            };
-
-            const jsonStr = JSON.stringify(payload);
-            const utf8Bytes = new TextEncoder().encode(jsonStr);
-            let binaryStr = '';
-            utf8Bytes.forEach(b => binaryStr += String.fromCharCode(b));
-            const base64Data = btoa(binaryStr);
-
-            // Construct URL with hash
-            const currentUrl = window.location.origin + window.location.pathname;
-            const shareUrl = `${currentUrl}#trust_share=${encodeURIComponent(base64Data)}`;
-            
-            document.getElementById('shareTrustLinkInput').value = shareUrl;
-            return shareUrl;
-        }
-
-        // Copy link to clipboard
-        function copyTrustShareLink() {
-            const linkInput = document.getElementById('shareTrustLinkInput');
-            linkInput.select();
-            linkInput.setSelectionRange(0, 99999);
-            document.execCommand('copy');
-            showToast('تم نسخ رابط مشاركة الأمانات بنجاح');
-        }
-
-        // Send via Email (mailto:)
-        function sendTrustViaEmail() {
-            const email = (document.getElementById('shareRecipientEmail').value || '').trim();
-            const shareUrl = generateShareableTrustLink();
-            
-            const subject = encodeURIComponent("كشف الأمانات والودائع المالية المشترك");
-            const body = encodeURIComponent(
-                `مرحباً،\n\nأشارك معك هذا الرابط الآمن للاطلاع على سجل وتفاصيل الأمانات والودائع الخاصة بنا:\n\n${shareUrl}\n\nيمكنك فتح الرابط مباشرة لمعاينة المبالغ وتواريخ الاستحقاق.\nمع التحية.`
-            );
-
-            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
-            showToast('تم تجهيز رسالة البريد الإلكتروني');
-        }
-
-        // Send via WhatsApp
-        function sendTrustViaWhatsApp() {
-            const shareUrl = generateShareableTrustLink();
-            const text = encodeURIComponent(
-                `السلام عليكم،\nأشارك معك رابط الاطلاع على كشف الأمانات والودائع المشترك:\n${shareUrl}`
-            );
-            window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-        }
-
-        // Check if URL contains trust share hash
-        function checkSharedTrustUrl() {
-            if (window.location.hash && window.location.hash.includes('trust_share=')) {
-                try {
-                    const base64Data = decodeURIComponent(window.location.hash.split('trust_share=')[1]);
-                    const binaryStr = atob(base64Data);
-                    const bytes = new Uint8Array(binaryStr.length);
-                    for (let i = 0; i < binaryStr.length; i++) {
-                        bytes[i] = binaryStr.charCodeAt(i);
-                    }
-                    const jsonText = new TextDecoder().decode(bytes);
-                    const payload = JSON.parse(jsonText);
-
-                    if (payload && payload.type === 'trust_portal') {
-                        openSharedTrustPortal(payload);
-                    }
-                } catch (e) {
-                    console.error("Failed to parse shared trust payload", e);
-                }
-            }
-        }
-
-        // Open Standalone Shared Portal UI
-        function openSharedTrustPortal(payload) {
-            let totalWithMe = 0;
-            let totalWithOthers = 0;
-            const container = document.getElementById('portalTrustList');
-            const curr = payload.cur || 'USD';
-            const currSymbol = curr === 'USD' ? '$' : 'ج.م';
-
-            if (!payload.data || payload.data.length === 0) {
-                container.innerHTML = '<div class="text-center p-6 text-slate-400 text-xs">لا توجد أمانات أو ودائع مسجلة في هذا الكشف.</div>';
-            } else {
-                container.innerHTML = payload.data.map(item => {
-                    const amt = parseFloat(item.a) || 0;
-                    if (!item.s) {
-                        if (item.d === 'with_me') totalWithMe += amt;
-                        else totalWithOthers += amt;
-                    }
-                    const isWithMe = item.d === 'with_me';
-                    const badge = isWithMe 
-                        ? '<span class="px-2 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold text-[10px]">أمانة بحوزتي (عهدة)</span>'
-                        : '<span class="px-2 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold text-[10px]">أمانة مستحقة عند الغير</span>';
-
-                    const status = item.s 
-                        ? '<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-[10px]">مستردة بالكامل</span>'
-                        : '<span class="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-700 font-bold text-[10px]">قائمة ونشطة</span>';
-
-                    return `
-                        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col gap-2">
-                            <div class="flex items-center justify-between">
-                                <h4 class="font-bold text-sm text-slate-900 dark:text-white">${escapeHtml(item.t)}</h4>
-                                <span class="font-black text-sm text-sky-600 dark:text-sky-400">${formatCurrency(item.a)} ${item.c || curr}</span>
-                            </div>
-                            <div class="flex items-center justify-between text-xs text-slate-500">
-                                <span><i class="fa-regular fa-user ml-1"></i> الطرف: ${escapeHtml(item.p || 'غير محدد')}</span>
-                                <span>التاريخ: ${item.dt}</span>
-                            </div>
-                            <div class="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700 text-xs">
-                                <div class="flex items-center gap-1.5">${badge} ${status}</div>
-                                ${item.dd ? `<span class="text-amber-600 dark:text-amber-400 font-bold text-[11px]"><i class="fa-regular fa-clock ml-1"></i> الاستحقاق: ${item.dd}</span>` : ''}
-                            </div>
-                            ${item.n ? `<p class="text-[11px] text-slate-400 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200/50">${escapeHtml(item.n)}</p>` : ''}
-                        </div>
-                    `;
-                }).join('');
-            }
-
-            document.getElementById('portalTrustHeld').textContent = `${formatCurrency(totalWithMe)} ${currSymbol}`;
-            document.getElementById('portalTrustGiven').textContent = `${formatCurrency(totalWithOthers)} ${currSymbol}`;
-
-            const portal = document.getElementById('sharedTrustViewPortal');
-            portal.classList.remove('hidden');
-            portal.classList.add('flex');
-        }
-
-        function closeSharedPortal() {
-            const portal = document.getElementById('sharedTrustViewPortal');
-            portal.classList.add('hidden');
-            portal.classList.remove('flex');
-            // Remove hash from URL smoothly
-            history.replaceState(null, null, ' ');
-        }
-
         function confirmSettle() {
             if (!settleTargetId) return;
             const index = transactions.findIndex(t => t.id === settleTargetId);
             if (index !== -1) {
                 transactions[index].settled = true;
+                saveLocalTransactions();
                 showToast('تمت التسوية بنجاح');
                 renderTransactions();
 
@@ -1555,40 +1343,81 @@
         }
 
         function saveGitHubConfig() {
-            githubConfig.username = document.getElementById('ghUsername').value.trim();
-            githubConfig.repo = document.getElementById('ghRepo').value.trim();
-            githubConfig.path = document.getElementById('ghPath').value.trim() || 'finance-data.json';
-            githubConfig.token = document.getElementById('ghToken').value.trim();
+            githubConfig.username = (document.getElementById('ghUsername').value || '').trim();
+            githubConfig.repo = (document.getElementById('ghRepo').value || '').trim();
+            githubConfig.path = (document.getElementById('ghPath').value || '').trim() || 'finance-data.json';
+            githubConfig.token = (document.getElementById('ghToken').value || '').trim();
+
+            try {
+                localStorage.setItem('pf_gh_config', JSON.stringify({
+                    username: githubConfig.username,
+                    repo: githubConfig.repo,
+                    path: githubConfig.path,
+                    token: githubConfig.token
+                }));
+            } catch (e) {
+                console.warn('LocalStorage error:', e);
+            }
 
             updateGitHubBadge();
-            showToast('تم حفظ إعدادات GitHub محلياً');
+            showToast('تم حفظ إعدادات GitHub بنجاح');
             closeGitHubModal();
         }
 
         function loadGitHubConfig() {
-            // Memory defaults; in non-sandboxed environment can be populated
+            try {
+                const stored = localStorage.getItem('pf_gh_config');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    githubConfig.username = parsed.username || githubConfig.username;
+                    githubConfig.repo = parsed.repo || githubConfig.repo;
+                    githubConfig.path = parsed.path || githubConfig.path;
+                    githubConfig.token = parsed.token || githubConfig.token;
+                }
+            } catch (e) {
+                console.warn('Config load error:', e);
+            }
             updateGitHubBadge();
         }
 
         function updateGitHubBadge() {
             const badge = document.getElementById('gitSyncBadge');
-            if (githubConfig.token && githubConfig.repo && githubConfig.username) {
-                badge.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
-            } else {
-                badge.className = 'w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600';
+            if (badge) {
+                if (githubConfig.token && githubConfig.repo && githubConfig.username) {
+                    badge.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                } else {
+                    badge.className = 'w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600';
+                }
             }
+        }
+
+        // Helper to format GitHub Authorization Header
+        function getGitHubHeaders() {
+            return {
+                'Authorization': `Bearer ${githubConfig.token}`,
+                'Accept': 'application/vnd.github.v3+json',
+                'X-GitHub-Api-Version': '2022-11-28'
+            };
         }
 
         // Push Transactions to GitHub Repository
         async function pushToGitHub(isSilent = false) {
-            githubConfig.username = document.getElementById('ghUsername').value.trim() || githubConfig.username;
-            githubConfig.repo = document.getElementById('ghRepo').value.trim() || githubConfig.repo;
-            githubConfig.path = document.getElementById('ghPath').value.trim() || githubConfig.path || 'finance-data.json';
-            githubConfig.token = document.getElementById('ghToken').value.trim() || githubConfig.token;
+            // Read latest inputs from modal if open
+            const uInput = document.getElementById('ghUsername');
+            const rInput = document.getElementById('ghRepo');
+            const pInput = document.getElementById('ghPath');
+            const tInput = document.getElementById('ghToken');
+
+            if (uInput && uInput.value.trim()) githubConfig.username = uInput.value.trim();
+            if (rInput && rInput.value.trim()) githubConfig.repo = rInput.value.trim();
+            if (pInput && pInput.value.trim()) githubConfig.path = pInput.value.trim();
+            if (tInput && tInput.value.trim()) githubConfig.token = tInput.value.trim();
 
             if (!githubConfig.username || !githubConfig.repo || !githubConfig.token) {
-                if (!isSilent) openGitHubModal();
-                showToast('يرجى استكمال بيانات GitHub والـ Token أولاً', 'warning');
+                if (!isSilent) {
+                    openGitHubModal();
+                    showToast('يرجى كتابة رمز الدخول Personal Access Token', 'warning');
+                }
                 return;
             }
 
@@ -1601,35 +1430,36 @@
             try {
                 const apiUrl = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${githubConfig.path}`;
                 
-                // 1. Get existing file SHA if needed
-                let currentSha = githubConfig.lastSha;
-                if (!currentSha) {
-                    const checkRes = await fetch(apiUrl, {
-                        headers: {
-                            'Authorization': `token ${githubConfig.token}`,
-                            'Accept': 'application/vnd.github.v3+json'
-                        }
-                    });
-                    if (checkRes.ok) {
-                        const fileData = await checkRes.json();
-                        currentSha = fileData.sha;
-                        githubConfig.lastSha = currentSha;
-                    }
+                // 1. Fetch latest SHA to prevent collision
+                let currentSha = null;
+                const checkRes = await fetch(apiUrl, {
+                    headers: getGitHubHeaders(),
+                    cache: 'no-store'
+                });
+
+                if (checkRes.ok) {
+                    const fileData = await checkRes.json();
+                    currentSha = fileData.sha;
+                    githubConfig.lastSha = currentSha;
+                } else if (checkRes.status === 401) {
+                    throw new Error('الرمز (Token) غير صالح أو منتهي الصلاحية (401)');
+                } else if (checkRes.status !== 404) {
+                    const errJson = await checkRes.json();
+                    throw new Error(errJson.message || 'خطأ في جلب بيانات المستودع');
                 }
 
-                // 2. Prepare content base64 encoded
+                // 2. Prepare payload with UTF-8 support
                 const payloadContent = {
                     updatedAt: new Date().toISOString(),
+                    transactionsCount: transactions.length,
                     transactions: transactions
                 };
-                const utf8Bytes = new TextEncoder().encode(JSON.stringify(payloadContent, null, 2));
-                let binaryStr = '';
-                utf8Bytes.forEach(b => binaryStr += String.fromCharCode(b));
-                const base64Content = btoa(binaryStr);
+                const jsonText = JSON.stringify(payloadContent, null, 2);
+                const base64Content = utf8ToBase64(jsonText);
 
-                // 3. Put request to commit file
+                // 3. Commit File to GitHub
                 const commitBody = {
-                    message: `تحديث المعاملات المالية [${new Date().toISOString()}]`,
+                    message: `تحديث المعاملات المالية [${new Date().toLocaleString('en-US')}]`,
                     content: base64Content,
                     sha: currentSha || undefined
                 };
@@ -1637,9 +1467,8 @@
                 const res = await fetch(apiUrl, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${githubConfig.token}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github.v3+json'
+                        ...getGitHubHeaders(),
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(commitBody)
                 });
@@ -1648,13 +1477,15 @@
                     const responseJson = await res.json();
                     githubConfig.lastSha = responseJson.content?.sha;
                     updateGitHubBadge();
+                    saveLocalTransactions();
                     showToast('تمت المزامنة وحفظ البيانات في GitHub بنجاح');
                 } else {
                     const err = await res.json();
-                    showToast(`خطأ من GitHub: ${err.message || 'فشلت المزامنة'}`, 'warning');
+                    throw new Error(err.message || 'فشل حفظ الملف في GitHub');
                 }
             } catch (err) {
-                showToast('تعذر الاتصال بـ GitHub، يرجى فحص الشبكة والـ Token', 'warning');
+                console.error("Push Error:", err);
+                showToast(err.message || 'تعذر الاتصال بـ GitHub', 'warning');
             } finally {
                 if (!isSilent && btn) {
                     btn.disabled = false;
@@ -1665,10 +1496,15 @@
 
         // Pull Transactions from GitHub Repository
         async function pullFromGitHub(isSilent = false) {
-            githubConfig.username = document.getElementById('ghUsername').value.trim() || githubConfig.username;
-            githubConfig.repo = document.getElementById('ghRepo').value.trim() || githubConfig.repo;
-            githubConfig.path = document.getElementById('ghPath').value.trim() || githubConfig.path || 'finance-data.json';
-            githubConfig.token = document.getElementById('ghToken').value.trim() || githubConfig.token;
+            const uInput = document.getElementById('ghUsername');
+            const rInput = document.getElementById('ghRepo');
+            const pInput = document.getElementById('ghPath');
+            const tInput = document.getElementById('ghToken');
+
+            if (uInput && uInput.value.trim()) githubConfig.username = uInput.value.trim();
+            if (rInput && rInput.value.trim()) githubConfig.repo = rInput.value.trim();
+            if (pInput && pInput.value.trim()) githubConfig.path = pInput.value.trim();
+            if (tInput && tInput.value.trim()) githubConfig.token = tInput.value.trim();
 
             if (!githubConfig.username || !githubConfig.repo || !githubConfig.token) {
                 if (!isSilent) showToast('يرجى إدخال اسم المستخدم والمستودع والـ Token', 'warning');
@@ -1684,41 +1520,43 @@
             try {
                 const apiUrl = `https://api.github.com/repos/${githubConfig.username}/${githubConfig.repo}/contents/${githubConfig.path}`;
                 const res = await fetch(apiUrl, {
-                    headers: {
-                        'Authorization': `token ${githubConfig.token}`,
-                        'Accept': 'application/vnd.github.v3+json'
-                    }
+                    headers: getGitHubHeaders(),
+                    cache: 'no-store'
                 });
 
                 if (res.ok) {
                     const fileData = await res.json();
                     githubConfig.lastSha = fileData.sha;
 
-                    // Decode UTF8 base64
-                    const binaryStr = atob(fileData.content.replace(/\n/g, ''));
-                    const bytes = new Uint8Array(binaryStr.length);
-                    for (let i = 0; i < binaryStr.length; i++) {
-                        bytes[i] = binaryStr.charCodeAt(i);
-                    }
-                    const jsonText = new TextDecoder().decode(bytes);
+                    // Decode with UTF-8 safely
+                    const jsonText = base64ToUtf8(fileData.content);
                     const parsed = JSON.parse(jsonText);
 
                     if (Array.isArray(parsed.transactions)) {
                         transactions = parsed.transactions;
                     } else if (Array.isArray(parsed)) {
                         transactions = parsed;
+                    } else {
+                        transactions = [];
                     }
 
+                    saveLocalTransactions();
                     renderTransactions();
                     updateGitHubBadge();
                     if (!isSilent) showToast('تم استرجاع ومزامنة البيانات من GitHub بنجاح');
                     closeGitHubModal();
-                } else if (!isSilent) {
+                } else if (res.status === 404) {
+                    // File not created yet in repo
+                    if (!isSilent) showToast('الملف غير موجود بعد، احفظ أول معاملة لإنشائه تلقائياً', 'info');
+                } else if (res.status === 401) {
+                    throw new Error('الرمز (Token) غير صالح أو تم إبطاله (401)');
+                } else {
                     const err = await res.json();
-                    showToast(`تعذر العثور على الملف: ${err.message || 'غير موجود'}`, 'warning');
+                    throw new Error(err.message || 'تعذر جلب البيانات');
                 }
             } catch (err) {
-                if (!isSilent) showToast('فشل الاسترجاع، تحقق من الصلاحيات والإنترنت', 'warning');
+                console.error("Pull Error:", err);
+                if (!isSilent) showToast(err.message || 'فشل الاسترجاع، تحقق من الاتصال والرمز', 'warning');
             } finally {
                 if (!isSilent && btn) {
                     btn.disabled = false;
@@ -1805,6 +1643,240 @@
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#039;");
+        }
+
+        // ==========================================
+        // Currency & Interactive Card Filter Controls
+        // ==========================================
+        function setActiveDisplayCurrency(currency) {
+            activeDisplayCurrency = currency;
+            const btnUSD = document.getElementById('btnCurrencyUSD');
+            const btnEGP = document.getElementById('btnCurrencyEGP');
+            const activePill = document.getElementById('activeCurrencyPill');
+            const subLabel = document.getElementById('statCurrencySublabel');
+
+            if (currency === 'USD') {
+                btnUSD.className = 'px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-700 text-brand-600 dark:text-white shadow-xs';
+                btnEGP.className = 'px-2.5 py-1 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-800';
+                if (activePill) activePill.textContent = 'USD';
+                if (subLabel) subLabel.textContent = 'بالدولار ($)';
+            } else {
+                btnEGP.className = 'px-2.5 py-1 rounded-lg transition bg-white dark:bg-slate-700 text-brand-600 dark:text-white shadow-xs';
+                btnUSD.className = 'px-2.5 py-1 rounded-lg transition text-slate-500 dark:text-slate-400 hover:text-slate-800';
+                if (activePill) activePill.textContent = 'EGP';
+                if (subLabel) subLabel.textContent = 'بالجنيه (ج.م)';
+            }
+            renderTransactions();
+        }
+
+        function toggleCurrencyQuick() {
+            setActiveDisplayCurrency(activeDisplayCurrency === 'USD' ? 'EGP' : 'USD');
+        }
+
+        function setFilterType(type) {
+            currentFilterType = type;
+
+            // Update toolbar filter buttons
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (btn.dataset.type === type) {
+                    btn.className = 'filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-brand-600 bg-brand-600 text-white';
+                } else {
+                    btn.className = 'filter-btn shrink-0 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300';
+                }
+            });
+
+            // Highlight active stat card
+            const cardMap = {
+                all: 'cardAll',
+                deposit: 'cardDeposit',
+                withdraw: 'cardWithdraw',
+                debt: 'cardDebt',
+                trust: 'cardTrust'
+            };
+
+            Object.values(cardMap).forEach(cardId => {
+                const el = document.getElementById(cardId);
+                if (el) el.classList.remove('active-card');
+            });
+
+            const targetCard = document.getElementById(cardMap[type]);
+            if (targetCard) targetCard.classList.add('active-card');
+
+            renderTransactions();
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle('dark');
+        }
+
+        // ==========================================
+        // Trust & Deposit Share Feature Implementation
+        // ==========================================
+        function openShareTrustModal(e) {
+            if (e) e.stopPropagation();
+            generateShareableTrustLink();
+            const modal = document.getElementById('shareTrustModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeShareTrustModal() {
+            const modal = document.getElementById('shareTrustModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function generateShareableTrustLink() {
+            const scope = document.getElementById('shareTrustScope').value;
+            const trustItems = transactions.filter(t => {
+                if (t.type !== 'trust') return false;
+                if (scope === 'pending') return !t.settled;
+                if (scope === 'with_me') return t.subDirection === 'with_me';
+                if (scope === 'with_others') return t.subDirection === 'with_others';
+                return true;
+            });
+
+            const sharePayload = {
+                t: 'trust_portal',
+                cur: activeDisplayCurrency,
+                scope: scope,
+                date: new Date().toISOString().split('T')[0],
+                items: trustItems.map(i => ({
+                    id: i.id,
+                    amount: i.amount,
+                    currency: i.currency,
+                    subDirection: i.subDirection,
+                    title: i.title,
+                    party: i.party,
+                    date: i.date,
+                    dueDate: i.dueDate,
+                    settled: i.settled,
+                    notes: i.notes
+                }))
+            };
+
+            const encoded = utf8ToBase64(JSON.stringify(sharePayload));
+            const baseUrl = window.location.origin + window.location.pathname;
+            const shareUrl = `${baseUrl}?trust_view=${encodeURIComponent(encoded)}`;
+
+            const linkInput = document.getElementById('shareTrustLinkInput');
+            if (linkInput) linkInput.value = shareUrl;
+            return shareUrl;
+        }
+
+        function copyTrustShareLink() {
+            const linkInput = document.getElementById('shareTrustLinkInput');
+            if (linkInput) {
+                linkInput.select();
+                linkInput.setSelectionRange(0, 99999);
+                try {
+                    document.execCommand('copy');
+                    showToast('تم نسخ رابط المعاينة بنجاح');
+                } catch (err) {
+                    showToast('يرجى نسخ الرابط يدوياً', 'warning');
+                }
+            }
+        }
+
+        function sendTrustViaEmail() {
+            const email = (document.getElementById('shareRecipientEmail').value || '').trim();
+            const link = generateShareableTrustLink();
+            const subject = encodeURIComponent(`كشف الأمانات والودائع المشترك [${activeDisplayCurrency}]`);
+            const body = encodeURIComponent(`مرحباً،\n\nيمكنك الاطلاع على كشف الأمانات والودائع من خلال الرابط التالي:\n${link}\n\nتحياتي.`);
+            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+        }
+
+        function sendTrustViaWhatsApp() {
+            const link = generateShareableTrustLink();
+            const text = encodeURIComponent(`السلام عليكم،\nإليك رابط الاطلاع على كشف الأمانات والودائع:\n${link}`);
+            window.open(`https://wa.me/?text=${text}`, '_blank');
+        }
+
+        function checkSharedTrustUrl() {
+            try {
+                const params = new URLSearchParams(window.location.search);
+                const trustParam = params.get('trust_view');
+                if (!trustParam) return;
+
+                const jsonStr = base64ToUtf8(decodeURIComponent(trustParam));
+                const data = JSON.parse(jsonStr);
+
+                if (data && data.t === 'trust_portal' && Array.isArray(data.items)) {
+                    renderSharedTrustPortal(data);
+                }
+            } catch (err) {
+                console.error("Error loading shared trust portal:", err);
+            }
+        }
+
+        function renderSharedTrustPortal(data) {
+            let held = 0;
+            let given = 0;
+            const cur = data.cur || 'USD';
+            const curSym = cur === 'USD' ? '$' : 'ج.م';
+
+            data.items.forEach(item => {
+                if (item.currency !== cur) return;
+                const amt = parseFloat(item.amount) || 0;
+                if (!item.settled) {
+                    if (item.subDirection === 'with_me') held += amt;
+                    else if (item.subDirection === 'with_others') given += amt;
+                }
+            });
+
+            document.getElementById('portalTrustHeld').textContent = `${formatCurrency(held)} ${curSym}`;
+            document.getElementById('portalTrustGiven').textContent = `${formatCurrency(given)} ${curSym}`;
+
+            const listEl = document.getElementById('portalTrustList');
+            if (data.items.length === 0) {
+                listEl.innerHTML = `<p class="text-center text-slate-400 py-6 text-xs">لا توجد أمانات مدرجة في هذا الكشف.</p>`;
+            } else {
+                listEl.innerHTML = data.items.map(item => {
+                    const isWithMe = item.subDirection === 'with_me';
+                    const dirBadge = isWithMe 
+                        ? '<span class="px-2 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold text-[10px]">بحوزة الطرف الأول (أمانة)</span>'
+                        : '<span class="px-2 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold text-[10px]">لدى الطرف الآخر</span>';
+                    
+                    const status = item.settled 
+                        ? '<span class="text-emerald-600 font-bold text-xs"><i class="fa-solid fa-circle-check"></i> مسترد/مغلق</span>'
+                        : '<span class="text-amber-600 font-bold text-xs"><i class="fa-regular fa-clock"></i> أمانة قائمة</span>';
+
+                    return `
+                        <div class="p-3.5 bg-slate-50 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                            <div class="flex items-start justify-between">
+                                <div>
+                                    <h4 class="font-bold text-sm text-slate-900 dark:text-white">${escapeHtml(item.title)}</h4>
+                                    <div class="text-xs text-slate-400 mt-0.5">الطرف المعني: <span class="font-semibold text-slate-700 dark:text-slate-300">${escapeHtml(item.party || 'غير محدد')}</span></div>
+                                </div>
+                                <div class="text-left font-black text-sm text-sky-600 dark:text-sky-400">
+                                    ${formatCurrency(item.amount)} ${item.currency === 'USD' ? '$' : 'ج.م'}
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between pt-2 border-t border-slate-200/60 dark:border-slate-700 text-xs">
+                                <div>${dirBadge}</div>
+                                <div>${status}</div>
+                            </div>
+                            ${item.dueDate ? `<div class="text-[11px] text-amber-600 dark:text-amber-400 font-semibold"><i class="fa-regular fa-calendar-check ml-1"></i> تاريخ الرد المتفق عليه: ${item.dueDate}</div>` : ''}
+                            ${item.notes ? `<p class="text-[11px] text-slate-500 bg-white dark:bg-slate-850 p-2 rounded-xl border border-slate-200 dark:border-slate-700">${escapeHtml(item.notes)}</p>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            const portal = document.getElementById('sharedTrustViewPortal');
+            portal.classList.remove('hidden');
+            portal.classList.add('flex');
+        }
+
+        function closeSharedPortal() {
+            const portal = document.getElementById('sharedTrustViewPortal');
+            portal.classList.add('hidden');
+            portal.classList.remove('flex');
+            // Clean url param if desired
+            if (window.history.pushState) {
+                const cleanUrl = window.location.origin + window.location.pathname;
+                window.history.pushState({path: cleanUrl}, '', cleanUrl);
+            }
         }
     </script>
 </body>
