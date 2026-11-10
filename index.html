@@ -216,15 +216,20 @@
                 </div>
             </div>
 
-            <!-- 5. Trusts Card (Sky & Ocean Blue Gradient) -->
-            <div id="cardTrust" onclick="setFilterType('trust')" class="stat-card col-span-2 lg:col-span-1 bg-gradient-to-br from-sky-500 via-sky-600 to-blue-700 text-white p-4 rounded-2xl shadow-lg shadow-sky-600/20 relative overflow-hidden flex flex-col justify-between border border-sky-400/30" title="انقر لتصفية الأمانات">
+            <!-- 5. Trusts Card (Sky & Ocean Blue Gradient) - Now Square on Mobile matching others + Share Button -->
+            <div id="cardTrust" onclick="setFilterType('trust')" class="stat-card bg-gradient-to-br from-sky-500 via-sky-600 to-blue-700 text-white p-4 rounded-2xl shadow-lg shadow-sky-600/20 relative overflow-hidden flex flex-col justify-between border border-sky-400/30" title="انقر لتصفية الأمانات">
                 <div class="absolute -right-2 -bottom-2 opacity-15 text-6xl pointer-events-none">
                     <i class="fa-solid fa-vault"></i>
                 </div>
                 <div class="flex items-center justify-between">
                     <span class="text-xs font-bold text-sky-100">الأمانات والودائع</span>
-                    <div class="w-8 h-8 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center text-sm shadow-inner">
-                        <i class="fa-solid fa-vault"></i>
+                    <div class="flex items-center gap-1">
+                        <button onclick="openShareTrustModal(event)" class="w-7 h-7 rounded-lg bg-white/25 hover:bg-white/40 backdrop-blur-md flex items-center justify-center text-xs transition shadow-xs text-white" title="مشاركة بطاقة الأمانات مع شخص">
+                            <i class="fa-solid fa-share-nodes"></i>
+                        </button>
+                        <div class="w-7 h-7 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-xs shadow-inner">
+                            <i class="fa-solid fa-vault"></i>
+                        </div>
                     </div>
                 </div>
                 <div class="mt-2 flex items-baseline justify-between bg-black/15 p-2 rounded-xl backdrop-blur-xs">
@@ -237,8 +242,11 @@
                         <span id="statTrustGiven" class="text-xs sm:text-sm font-black text-cyan-200">0.00</span>
                     </div>
                 </div>
-                <div class="mt-2 text-left">
-                    <span class="text-[10px] bg-sky-400/30 px-1.5 py-0.5 rounded-md font-bold text-white">تصفية الأمانات ↗</span>
+                <div class="mt-2 flex items-center justify-between">
+                    <button onclick="openShareTrustModal(event)" class="text-[10px] bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-md font-bold text-white transition flex items-center gap-1">
+                        <i class="fa-solid fa-paper-plane text-[9px]"></i> مشاركة
+                    </button>
+                    <span class="text-[10px] bg-sky-400/30 px-1.5 py-0.5 rounded-md font-bold text-white">تصفية ↗</span>
                 </div>
             </div>
 
@@ -610,7 +618,119 @@
 
             <div class="flex gap-2">
                 <button onclick="closeSettleModal()" class="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold">تراجع</button>
-                <button onclick="confirmSettle()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30">تأكيد التسوية</button>
+        <button onclick="confirmSettle()" class="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-600/30">تأكيد التسوية</button>
+    </div>
+</div>
+</div>
+
+    <!-- Share Trust Modal (مشاركة بطاقة الودائع والأمانات عبر البريد) -->
+    <div id="shareTrustModal" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs hidden items-end sm:items-center justify-center p-0 sm:p-4 overflow-y-auto no-print">
+        <div class="animate-slide-up sm:modal-animate bg-white dark:bg-slate-900 w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center text-lg shadow-md shadow-sky-500/20">
+                        <i class="fa-solid fa-share-nodes"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-slate-900 dark:text-white">مشاركة سجل الودائع والأمانات</h3>
+                        <p class="text-[11px] text-slate-400">إرسال رابط خاص يعرض بطاقة وسجل الأمانات فقط</p>
+                    </div>
+                </div>
+                <button onclick="closeShareTrustModal()" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 flex items-center justify-center">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Email & Share Settings -->
+            <div class="space-y-3.5 text-xs">
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">البريد الإلكتروني للشخص (اختياري للإرسال المباشر)</label>
+                    <div class="relative">
+                        <i class="fa-regular fa-envelope absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="email" id="shareRecipientEmail" placeholder="example@email.com" class="w-full pr-9 pl-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 dark:text-white">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">تحديد نطاق المشاركة</label>
+                    <select id="shareTrustScope" onchange="generateShareableTrustLink()" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 dark:text-white text-xs">
+                        <option value="all">كل الأمانات والودائع (القائمة والمسددة)</option>
+                        <option value="pending" selected>الأمانات القائمة والنشطة فقط</option>
+                        <option value="with_me">الأمانات المحفوظة بحوزتي (عهدة)</option>
+                        <option value="with_others">الأمانات التي لي عند الغير</option>
+                    </select>
+                </div>
+
+                <!-- Generated Link Box -->
+                <div>
+                    <label class="block font-bold text-slate-700 dark:text-slate-300 mb-1">الرابط الخاص للمعاينة (للقراءة فقط)</label>
+                    <div class="flex items-center gap-1.5">
+                        <input type="text" id="shareTrustLinkInput" readonly class="flex-1 px-3 py-2 bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 rounded-xl text-[11px] text-slate-600 dark:text-slate-300 select-all font-mono">
+                        <button onclick="copyTrustShareLink()" class="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 font-bold transition flex items-center gap-1 shrink-0">
+                            <i class="fa-regular fa-copy"></i>
+                            <span class="hidden sm:inline">نسخ</span>
+                        </button>
+                    </div>
+                    <span class="text-[10px] text-slate-400 mt-1 block">🔒 هذا الرابط آمن ولا يتيح للطرف الآخر رؤية باقي مدخولاتك أو سحوباتك الشخصية.</span>
+                </div>
+            </div>
+
+            <!-- Quick Action Send Buttons -->
+            <div class="pt-2 grid grid-cols-2 gap-2">
+                <button onclick="sendTrustViaEmail()" class="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-sm">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                    <span>إرسال عبر الإيميل</span>
+                </button>
+                <button onclick="sendTrustViaWhatsApp()" class="py-2.5 px-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-sm">
+                    <i class="fa-brands fa-whatsapp text-sm"></i>
+                    <span>مشاركة واتساب</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Special Standalone View Modal for Shared Trust View -->
+    <div id="sharedTrustViewPortal" class="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm hidden items-center justify-center p-3 sm:p-6 overflow-y-auto no-print">
+        <div class="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="p-4 sm:p-5 bg-gradient-to-r from-sky-600 to-blue-700 text-white flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-vault"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-extrabold">كشف الأمانات والودائع المشترك</h3>
+                        <p class="text-xs text-sky-100">عرض رسمي للمطابقة والمتابعة (نسخة معتمدة للقراءة فقط)</p>
+                    </div>
+                </div>
+                <button onclick="closeSharedPortal()" class="w-8 h-8 rounded-xl bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="p-4 sm:p-6 space-y-4 overflow-y-auto">
+                <!-- Summary Card inside portal -->
+                <div class="grid grid-cols-2 gap-3 bg-sky-50 dark:bg-slate-800 p-4 rounded-2xl border border-sky-100 dark:border-slate-700">
+                    <div>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 block font-bold">بحوزة الطرف الأول (أمانة محفوظة)</span>
+                        <span id="portalTrustHeld" class="text-lg font-black text-sky-700 dark:text-sky-300">0.00</span>
+                    </div>
+                    <div class="text-left">
+                        <span class="text-xs text-slate-500 dark:text-slate-400 block font-bold">مستحقة لدى الطرف الآخر</span>
+                        <span id="portalTrustGiven" class="text-lg font-black text-blue-700 dark:text-blue-300">0.00</span>
+                    </div>
+                </div>
+
+                <!-- Trust items list -->
+                <div id="portalTrustList" class="space-y-2.5">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <div class="p-4 bg-slate-50 dark:bg-slate-850 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <span class="text-xs text-slate-400">نظام إدارة المعاملات المالية الآمن</span>
+                <button onclick="window.print()" class="px-4 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 shadow-xs">
+                    <i class="fa-solid fa-print"></i> طباعة كشف
+                </button>
             </div>
         </div>
     </div>
@@ -662,6 +782,9 @@
             if (githubConfig.username && githubConfig.repo && githubConfig.token) {
                 pullFromGitHub(true); // Silent initial load
             }
+
+            // Check if application was opened using a shared Trust link parameter
+            checkSharedTrustUrl();
         });
 
         // Toggle Theme
@@ -1214,6 +1337,186 @@
             const modal = document.getElementById('settleModal');
             modal.classList.add('hidden');
             modal.classList.remove('flex');
+        }
+
+        // ==========================================
+        // Trust Card Sharing System (مشاركة بطاقة الأمانات)
+        // ==========================================
+        function openShareTrustModal(e) {
+            if (e) e.stopPropagation(); // منع تفعيل الفلتر عند الضغط على زر المشاركة
+
+            const modal = document.getElementById('shareTrustModal');
+            generateShareableTrustLink();
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeShareTrustModal() {
+            const modal = document.getElementById('shareTrustModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Generate encrypted/encoded standalone link for Trust Card
+        function generateShareableTrustLink() {
+            const scope = document.getElementById('shareTrustScope').value;
+            const trustItems = transactions.filter(t => {
+                if (t.type !== 'trust') return false;
+                if (scope === 'pending' && t.settled) return false;
+                if (scope === 'with_me' && t.subDirection !== 'with_me') return false;
+                if (scope === 'with_others' && t.subDirection !== 'with_others') return false;
+                return true;
+            });
+
+            // Strip sensitive fields, keep only trust records
+            const sanitizedTrust = trustItems.map(item => ({
+                t: item.title,
+                p: item.party,
+                a: item.amount,
+                c: item.currency,
+                d: item.subDirection,
+                dt: item.date,
+                dd: item.dueDate,
+                s: item.settled,
+                n: item.notes
+            }));
+
+            const payload = {
+                type: 'trust_portal',
+                cur: activeDisplayCurrency,
+                data: sanitizedTrust,
+                scope: scope,
+                date: new Date().toISOString().split('T')[0]
+            };
+
+            const jsonStr = JSON.stringify(payload);
+            const utf8Bytes = new TextEncoder().encode(jsonStr);
+            let binaryStr = '';
+            utf8Bytes.forEach(b => binaryStr += String.fromCharCode(b));
+            const base64Data = btoa(binaryStr);
+
+            // Construct URL with hash
+            const currentUrl = window.location.origin + window.location.pathname;
+            const shareUrl = `${currentUrl}#trust_share=${encodeURIComponent(base64Data)}`;
+            
+            document.getElementById('shareTrustLinkInput').value = shareUrl;
+            return shareUrl;
+        }
+
+        // Copy link to clipboard
+        function copyTrustShareLink() {
+            const linkInput = document.getElementById('shareTrustLinkInput');
+            linkInput.select();
+            linkInput.setSelectionRange(0, 99999);
+            document.execCommand('copy');
+            showToast('تم نسخ رابط مشاركة الأمانات بنجاح');
+        }
+
+        // Send via Email (mailto:)
+        function sendTrustViaEmail() {
+            const email = (document.getElementById('shareRecipientEmail').value || '').trim();
+            const shareUrl = generateShareableTrustLink();
+            
+            const subject = encodeURIComponent("كشف الأمانات والودائع المالية المشترك");
+            const body = encodeURIComponent(
+                `مرحباً،\n\nأشارك معك هذا الرابط الآمن للاطلاع على سجل وتفاصيل الأمانات والودائع الخاصة بنا:\n\n${shareUrl}\n\nيمكنك فتح الرابط مباشرة لمعاينة المبالغ وتواريخ الاستحقاق.\nمع التحية.`
+            );
+
+            window.location.href = `mailto:${email}?subject=${subject}&body=${body}`;
+            showToast('تم تجهيز رسالة البريد الإلكتروني');
+        }
+
+        // Send via WhatsApp
+        function sendTrustViaWhatsApp() {
+            const shareUrl = generateShareableTrustLink();
+            const text = encodeURIComponent(
+                `السلام عليكم،\nأشارك معك رابط الاطلاع على كشف الأمانات والودائع المشترك:\n${shareUrl}`
+            );
+            window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+        }
+
+        // Check if URL contains trust share hash
+        function checkSharedTrustUrl() {
+            if (window.location.hash && window.location.hash.includes('trust_share=')) {
+                try {
+                    const base64Data = decodeURIComponent(window.location.hash.split('trust_share=')[1]);
+                    const binaryStr = atob(base64Data);
+                    const bytes = new Uint8Array(binaryStr.length);
+                    for (let i = 0; i < binaryStr.length; i++) {
+                        bytes[i] = binaryStr.charCodeAt(i);
+                    }
+                    const jsonText = new TextDecoder().decode(bytes);
+                    const payload = JSON.parse(jsonText);
+
+                    if (payload && payload.type === 'trust_portal') {
+                        openSharedTrustPortal(payload);
+                    }
+                } catch (e) {
+                    console.error("Failed to parse shared trust payload", e);
+                }
+            }
+        }
+
+        // Open Standalone Shared Portal UI
+        function openSharedTrustPortal(payload) {
+            let totalWithMe = 0;
+            let totalWithOthers = 0;
+            const container = document.getElementById('portalTrustList');
+            const curr = payload.cur || 'USD';
+            const currSymbol = curr === 'USD' ? '$' : 'ج.م';
+
+            if (!payload.data || payload.data.length === 0) {
+                container.innerHTML = '<div class="text-center p-6 text-slate-400 text-xs">لا توجد أمانات أو ودائع مسجلة في هذا الكشف.</div>';
+            } else {
+                container.innerHTML = payload.data.map(item => {
+                    const amt = parseFloat(item.a) || 0;
+                    if (!item.s) {
+                        if (item.d === 'with_me') totalWithMe += amt;
+                        else totalWithOthers += amt;
+                    }
+                    const isWithMe = item.d === 'with_me';
+                    const badge = isWithMe 
+                        ? '<span class="px-2 py-0.5 rounded-lg bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 font-bold text-[10px]">أمانة بحوزتي (عهدة)</span>'
+                        : '<span class="px-2 py-0.5 rounded-lg bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 font-bold text-[10px]">أمانة مستحقة عند الغير</span>';
+
+                    const status = item.s 
+                        ? '<span class="px-2 py-0.5 rounded-lg bg-emerald-100 text-emerald-700 font-bold text-[10px]">مستردة بالكامل</span>'
+                        : '<span class="px-2 py-0.5 rounded-lg bg-amber-100 text-amber-700 font-bold text-[10px]">قائمة ونشطة</span>';
+
+                    return `
+                        <div class="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex flex-col gap-2">
+                            <div class="flex items-center justify-between">
+                                <h4 class="font-bold text-sm text-slate-900 dark:text-white">${escapeHtml(item.t)}</h4>
+                                <span class="font-black text-sm text-sky-600 dark:text-sky-400">${formatCurrency(item.a)} ${item.c || curr}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-xs text-slate-500">
+                                <span><i class="fa-regular fa-user ml-1"></i> الطرف: ${escapeHtml(item.p || 'غير محدد')}</span>
+                                <span>التاريخ: ${item.dt}</span>
+                            </div>
+                            <div class="flex items-center justify-between pt-1 border-t border-slate-200/60 dark:border-slate-700 text-xs">
+                                <div class="flex items-center gap-1.5">${badge} ${status}</div>
+                                ${item.dd ? `<span class="text-amber-600 dark:text-amber-400 font-bold text-[11px]"><i class="fa-regular fa-clock ml-1"></i> الاستحقاق: ${item.dd}</span>` : ''}
+                            </div>
+                            ${item.n ? `<p class="text-[11px] text-slate-400 bg-white dark:bg-slate-900 p-2 rounded-xl border border-slate-200/50">${escapeHtml(item.n)}</p>` : ''}
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('portalTrustHeld').textContent = `${formatCurrency(totalWithMe)} ${currSymbol}`;
+            document.getElementById('portalTrustGiven').textContent = `${formatCurrency(totalWithOthers)} ${currSymbol}`;
+
+            const portal = document.getElementById('sharedTrustViewPortal');
+            portal.classList.remove('hidden');
+            portal.classList.add('flex');
+        }
+
+        function closeSharedPortal() {
+            const portal = document.getElementById('sharedTrustViewPortal');
+            portal.classList.add('hidden');
+            portal.classList.remove('flex');
+            // Remove hash from URL smoothly
+            history.replaceState(null, null, ' ');
         }
 
         function confirmSettle() {
