@@ -1,7 +1,21 @@
 {
-  "updatedAt": "2026-11-10T21:08:27.917Z",
-  "transactionsCount": 5,
+  "updatedAt": "2026-11-12T15:28:00.419Z",
+  "transactionsCount": 6,
   "transactions": [
+    {
+      "id": "tx-1794497279692",
+      "type": "withdraw",
+      "subDirection": null,
+      "amount": 2000,
+      "currency": "USD",
+      "title": "تحويل من حساب بنك فلسطين",
+      "party": "خالتي",
+      "account": "الحساب البنكي",
+      "date": "2026-11-12",
+      "dueDate": null,
+      "settled": true,
+      "notes": "تسديد دين سابق"
+    },
     {
       "id": "tx-1794344530413",
       "type": "debt",
